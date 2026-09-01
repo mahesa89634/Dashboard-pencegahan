@@ -1,0 +1,101 @@
+{
+  "entities": {
+    "InspeksiItem": {
+      "title": "InspeksiItem",
+      "description": "Laporan inspeksi proteksi kebakaran gedung dan objek vital di Kota Bima",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "date": { "type": "string" },
+        "status": { "type": "string", "enum": ["Perlu Perbaikan", "Kritis", "Aman"] },
+        "address": { "type": "string" },
+        "notes": { "type": "string" },
+        "image": { "type": "string", "description": "Base64 compressed JPEG string max 800px width" }
+      },
+      "required": ["id", "name", "date", "status", "address"]
+    },
+    "SocializationRecap": {
+      "title": "SocializationRecap",
+      "description": "Rekapitulasi kegiatan sosialisasi dan pemberdayaan masyarakat terkait proteksi kebakaran",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "date": { "type": "string" },
+        "location": { "type": "string" },
+        "participants": { "type": "number" },
+        "speaker": { "type": "string" },
+        "description": { "type": "string" },
+        "image": { "type": "string", "description": "Base64 compressed JPEG string max 800px width" }
+      },
+      "required": ["id", "title", "date", "location", "participants", "speaker", "description"]
+    },
+    "RedkarVolunteer": {
+      "title": "RedkarVolunteer",
+      "description": "Data anggota Relawan Pemadam Kebakaran (REDKAR) Kota Bima",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "subdistrict": { "type": "string" },
+        "phone": { "type": "string" },
+        "role": { "type": "string" },
+        "status": { "type": "string", "enum": ["Aktif", "Pelatihan", "Siaga"] },
+        "joinDate": { "type": "string" },
+        "image": { "type": "string" }
+      },
+      "required": ["id", "name", "subdistrict", "phone", "role", "status"]
+    },
+    "AparaturMaterial": {
+      "title": "AparaturMaterial",
+      "description": "Materi pembinaan aparatur BerAKHLAK dan SOP penanggulangan kebakaran",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "shortDesc": { "type": "string" },
+        "content": { "type": "array" },
+        "tips": { "type": "array" }
+      },
+      "required": ["id", "title", "category", "shortDesc"]
+    },
+    "NspmDocument": {
+      "title": "NspmDocument",
+      "description": "Dokumen standar NSPM dan regulasi proteksi kebakaran",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "code": { "type": "string" },
+        "summary": { "type": "string" },
+        "fileSize": { "type": "string" }
+      },
+      "required": ["id", "title", "category", "code", "summary", "fileSize"]
+    }
+  },
+  "firestore": {
+    "/inspeksi/{id}": {
+      "schema": "InspeksiItem",
+      "description": "Koleksi data hasil inspeksi gedung dan proteksi aktif/pasif kebakaran"
+    },
+    "/socializations/{id}": {
+      "schema": "SocializationRecap",
+      "description": "Koleksi dokumentasi kegiatan pemberdayaan dan edukasi kebakaran masyarakat"
+    },
+    "/volunteers/{id}": {
+      "schema": "RedkarVolunteer",
+      "description": "Koleksi relawan pemadam kebakaran REDKAR Kota Bima"
+    },
+    "/pembinaanMaterials/{id}": {
+      "schema": "AparaturMaterial",
+      "description": "Koleksi materi pembinaan aparatur pemadam kebakaran"
+    },
+    "/nspmDocs/{id}": {
+      "schema": "NspmDocument",
+      "description": "Koleksi dokumen NSPM regulasi pencegahan kebakaran"
+    }
+  }
+}

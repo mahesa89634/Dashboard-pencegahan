@@ -1,0 +1,8 @@
+{
+  "name": "Remix Pencegahan Damkarmat Kota Bima",
+  "description": "Android app UI prototype for fire prevention and mitigation in Kota Bima, featuring inspections, citizen empowerment, volunteer tracking, civil service training, and NSPM standards.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}

@@ -181,7 +181,7 @@ export default function InspeksiView({
                   type="button"
                   onClick={onOpenPinModal}
                   className="px-3.5 py-2 bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-600 hover:to-amber-700 text-slate-950 font-black text-xs rounded-xl transition-all shadow-xs flex items-center gap-1.5 cursor-pointer active:scale-95 whitespace-nowrap border border-amber-400/60"
-                  title="Buka sensor temuan khusus pimpinan dengan PIN 4-digit (8914)"
+                  title="Buka sensor temuan khusus pimpinan dengan PIN"
                 >
                   <KeyRound className="w-3.5 h-3.5 text-slate-950" />
                   <span>Akses Pimpinan</span>
@@ -359,7 +359,7 @@ export default function InspeksiView({
                           type="button"
                           onClick={onOpenPinModal}
                           className="w-full text-left p-1.5 rounded-lg bg-red-50/80 hover:bg-red-100 border border-red-200/80 transition-colors cursor-pointer group"
-                          title="Klik untuk membuka PIN Pimpinan (8914)"
+                          title="Klik untuk memasukkan PIN Pimpinan"
                         >
                           <div className="flex items-start gap-1.5">
                             <Lock className="w-3.5 h-3.5 text-red-600 shrink-0 mt-0.5 group-hover:scale-110 transition-transform" />
@@ -486,7 +486,7 @@ export default function InspeksiView({
                           <div 
                             onClick={onOpenPinModal} 
                             className="cursor-pointer group relative"
-                            title="Klik untuk membuka PIN Pimpinan (8914)"
+                            title="Klik untuk memasukkan PIN Pimpinan"
                           >
                             <p className="text-slate-400 select-none filter blur-[3.5px] leading-relaxed line-clamp-2">
                               {item.notes}

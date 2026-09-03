@@ -275,7 +275,7 @@ export default function Modals(props: ModalsProps) {
       setPinInput('');
       setPinError('');
     } else {
-      setPinError('PIN Salah! Masukkan 4-digit PIN Pimpinan yang benar (8914).');
+      setPinError('PIN salah, silakan coba lagi.');
       setPinInput('');
     }
   };
@@ -1019,7 +1019,7 @@ export default function Modals(props: ModalsProps) {
                       onClick={onOpenLeadershipPinModal}
                       className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95"
                     >
-                      <KeyRound className="w-3.5 h-3.5" /> Masukkan PIN Pimpinan (8914)
+                      <KeyRound className="w-3.5 h-3.5" /> Masukkan PIN Pimpinan
                     </button>
                   </div>
                 )}
@@ -1239,10 +1239,6 @@ export default function Modals(props: ModalsProps) {
                 <p className="text-xs text-slate-600 leading-relaxed font-medium">
                   Masukkan 4-digit PIN Otoritas Pimpinan untuk membuka sensor catatan rahasia temuan inspeksi.
                 </p>
-                <div className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg text-[11px] font-mono text-slate-600">
-                  <span>PIN Pimpinan:</span>
-                  <strong className="text-slate-900 font-black tracking-wider">8914</strong>
-                </div>
               </div>
 
               {pinError && (

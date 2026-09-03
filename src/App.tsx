@@ -176,6 +176,7 @@ export default function App() {
       triggerToast('🔓 PIN Pimpinan Terverifikasi! Sensor catatan temuan inspeksi terbuka.');
       return true;
     }
+    triggerToast('⚠️ PIN salah, silakan coba lagi.');
     return false;
   };
 

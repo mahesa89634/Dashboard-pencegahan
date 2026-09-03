@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   X, 
   MapPin, 
@@ -8,14 +8,19 @@ import {
   UserCheck, 
   Users, 
   Lock, 
+  Unlock,
+  KeyRound,
   Trash2, 
   Building2,
   FileText,
   Clock,
-  Sparkles
+  Sparkles,
+  Link2
 } from 'lucide-react';
-import { InspeksiItem, SocializationRecap, RedkarVolunteer, AparaturMaterial, NspmDocument } from '../../types';
+import { InspeksiItem, SocializationRecap, RedkarVolunteer, AparaturMaterial, PembinaanActivity, PembinaanCategory, NspmDocument, NspmCategory } from '../../types';
 import ImageUploader from '../ImageUploader';
+import { formatDateDisplay, toInputDateFormat } from '../../utils/dateUtils';
+import { KELURAHAN_KOTA_BIMA } from '../../data/kelurahanData';
 
 interface ModalsProps {
   // Admin Login
@@ -86,21 +91,23 @@ interface ModalsProps {
   setNewSocialImage: (val: string) => void;
   onSaveSocialization: () => void;
 
-  // Pembinaan Material Add/Edit
+  // Pembinaan Activity Add/Edit
   showPembinaanModal: boolean;
   onClosePembinaanModal: () => void;
-  editingMaterial: AparaturMaterial | null;
+  editingMaterial: PembinaanActivity | null;
   newMaterialTitle: string;
   setNewMaterialTitle: (val: string) => void;
-  newMaterialCategory: 'Penerapan Core Values BerAKHLAK' | 'Target SKP';
-  setNewMaterialCategory: (val: 'Penerapan Core Values BerAKHLAK' | 'Target SKP') => void;
-  newMaterialShortDesc: string;
-  setNewMaterialShortDesc: (val: string) => void;
-  newMaterialContent: string;
-  setNewMaterialContent: (val: string) => void;
-  newMaterialTips: string;
-  setNewMaterialTips: (val: string) => void;
+  newMaterialCategory: PembinaanCategory;
+  setNewMaterialCategory: (val: PembinaanCategory) => void;
+  newMaterialDate: string;
+  setNewMaterialDate: (val: string) => void;
+  newMaterialDescription: string;
+  setNewMaterialDescription: (val: string) => void;
+  newMaterialImage: string;
+  setNewMaterialImage: (val: string) => void;
   onSaveMaterial: () => void;
+  selectedPembinaan?: PembinaanActivity | null;
+  onCloseSelectedPembinaan?: () => void;
 
   // NSPM Add/Edit
   showNspmModal: boolean;
@@ -108,14 +115,12 @@ interface ModalsProps {
   editingNspm: NspmDocument | null;
   newNspmTitle: string;
   setNewNspmTitle: (val: string) => void;
-  newNspmCategory: 'Norma' | 'Standar' | 'Prosedur' | 'Manual';
-  setNewNspmCategory: (val: 'Norma' | 'Standar' | 'Prosedur' | 'Manual') => void;
-  newNspmCode: string;
-  setNewNspmCode: (val: string) => void;
+  newNspmCategory: NspmCategory | string;
+  setNewNspmCategory: (val: any) => void;
+  newNspmDriveUrl: string;
+  setNewNspmDriveUrl: (val: string) => void;
   newNspmSummary: string;
   setNewNspmSummary: (val: string) => void;
-  newNspmFileSize: string;
-  setNewNspmFileSize: (val: string) => void;
   onSaveNspm: () => void;
 
   // Detail Modals
@@ -123,6 +128,14 @@ interface ModalsProps {
   onCloseSelectedInspeksi: () => void;
   selectedSocialization: SocializationRecap | null;
   onCloseSelectedSocialization: () => void;
+
+  // Leadership PIN Access
+  isAdmin: boolean;
+  isLeadershipUnlocked: boolean;
+  showLeadershipPinModal: boolean;
+  onCloseLeadershipPinModal: () => void;
+  onUnlockLeadershipPin: (pin: string) => boolean;
+  onOpenLeadershipPinModal: () => void;
 
   // Delete Confirmation
   confirmDeleteTarget: {
@@ -211,13 +224,15 @@ export default function Modals(props: ModalsProps) {
     setNewMaterialTitle,
     newMaterialCategory,
     setNewMaterialCategory,
-    newMaterialShortDesc,
-    setNewMaterialShortDesc,
-    newMaterialContent,
-    setNewMaterialContent,
-    newMaterialTips,
-    setNewMaterialTips,
+    newMaterialDate,
+    setNewMaterialDate,
+    newMaterialDescription,
+    setNewMaterialDescription,
+    newMaterialImage,
+    setNewMaterialImage,
     onSaveMaterial,
+    selectedPembinaan,
+    onCloseSelectedPembinaan,
 
     showNspmModal,
     onCloseNspmModal,
@@ -226,12 +241,10 @@ export default function Modals(props: ModalsProps) {
     setNewNspmTitle,
     newNspmCategory,
     setNewNspmCategory,
-    newNspmCode,
-    setNewNspmCode,
+    newNspmDriveUrl,
+    setNewNspmDriveUrl,
     newNspmSummary,
     setNewNspmSummary,
-    newNspmFileSize,
-    setNewNspmFileSize,
     onSaveNspm,
 
     selectedInspeksi,
@@ -239,11 +252,33 @@ export default function Modals(props: ModalsProps) {
     selectedSocialization,
     onCloseSelectedSocialization,
 
+    isAdmin,
+    isLeadershipUnlocked,
+    showLeadershipPinModal,
+    onCloseLeadershipPinModal,
+    onUnlockLeadershipPin,
+    onOpenLeadershipPinModal,
+
     confirmDeleteTarget,
     onCloseConfirmDelete,
     onConfirmDelete,
     onImageUpload
   } = props;
+
+  const [pinInput, setPinInput] = useState<string>('');
+  const [pinError, setPinError] = useState<string>('');
+  const canViewNotes = isAdmin || isLeadershipUnlocked;
+
+  const handlePinSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (onUnlockLeadershipPin(pinInput.trim())) {
+      setPinInput('');
+      setPinError('');
+    } else {
+      setPinError('PIN Salah! Masukkan 4-digit PIN Pimpinan yang benar (8914).');
+      setPinInput('');
+    }
+  };
 
   return (
     <>
@@ -366,14 +401,25 @@ export default function Modals(props: ModalsProps) {
                 </div>
 
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Tanggal Pemeriksaan</label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="inspeksi-date-picker" className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-red-600" /> Tanggal Pemeriksaan
+                    </label>
+                    {newInspeksiDate && (
+                      <span className="text-[10.5px] font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded-md border border-red-100">
+                        {formatDateDisplay(newInspeksiDate)}
+                      </span>
+                    )}
+                  </div>
                   <input
-                    type="text"
-                    value={newInspeksiDate}
+                    id="inspeksi-date-picker"
+                    type="date"
+                    required
+                    value={toInputDateFormat(newInspeksiDate)}
                     onChange={(e) => setNewInspeksiDate(e.target.value)}
-                    placeholder="Contoh: 10 Jun 2026"
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:bg-white focus:ring-2 focus:ring-red-500/20 focus:border-red-500 cursor-pointer font-medium text-slate-800"
                   />
+                  <span className="text-[10px] text-slate-400 block">Pilih tanggal dari kalender</span>
                 </div>
               </div>
 
@@ -456,17 +502,17 @@ export default function Modals(props: ModalsProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Kecamatan Penugasan</label>
+                  <label className="text-xs font-bold text-slate-700">Kelurahan Penugasan</label>
                   <select
                     value={newVolSubdistrict}
                     onChange={(e) => setNewVolSubdistrict(e.target.value)}
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white font-medium"
                   >
-                    <option value="Rasanae Barat">Rasanae Barat</option>
-                    <option value="Rasanae Timur">Rasanae Timur</option>
-                    <option value="Mpunda">Mpunda</option>
-                    <option value="Raba">Raba</option>
-                    <option value="Asakota">Asakota</option>
+                    {KELURAHAN_KOTA_BIMA.map((kel) => (
+                      <option key={kel} value={kel}>
+                        Kelurahan {kel}
+                      </option>
+                    ))}
                   </select>
                 </div>
 
@@ -565,14 +611,25 @@ export default function Modals(props: ModalsProps) {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Tanggal Pelaksanaan</label>
+                  <div className="flex items-center justify-between">
+                    <label htmlFor="social-date-picker" className="text-xs font-bold text-slate-700 flex items-center gap-1">
+                      <Calendar className="w-3.5 h-3.5 text-indigo-600" /> Tanggal Pelaksanaan
+                    </label>
+                    {newSocialDate && (
+                      <span className="text-[10.5px] font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded-md border border-indigo-100">
+                        {formatDateDisplay(newSocialDate)}
+                      </span>
+                    )}
+                  </div>
                   <input
-                    type="text"
-                    value={newSocialDate}
+                    id="social-date-picker"
+                    type="date"
+                    required
+                    value={toInputDateFormat(newSocialDate)}
                     onChange={(e) => setNewSocialDate(e.target.value)}
-                    placeholder="Contoh: 10 Jun 2026"
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none"
+                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-slate-50 focus:bg-white focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 cursor-pointer font-medium text-slate-800"
                   />
+                  <span className="text-[10px] text-slate-400 block">Pilih tanggal dari kalender</span>
                 </div>
 
                 <div className="space-y-1">
@@ -653,84 +710,106 @@ export default function Modals(props: ModalsProps) {
       {showPembinaanModal && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl my-8">
-            <div className="p-5 bg-gradient-to-r from-emerald-700 to-[#1A237E] text-white flex justify-between items-center">
-              <h3 className="font-extrabold text-base">
-                {editingMaterial ? `Ubah Materi: ${editingMaterial.title}` : 'Tambah Materi SOP & Bimtek'}
-              </h3>
-              <button onClick={onClosePembinaanModal} className="p-1 hover:bg-white/10 rounded-full">
+            <div className="p-5 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex justify-between items-start">
+              <div>
+                <span className="text-[10px] bg-white/20 text-white font-bold px-2 py-0.5 rounded uppercase font-mono tracking-wider">
+                  Modul Pembinaan
+                </span>
+                <h3 className="font-extrabold text-base mt-1">
+                  {editingMaterial ? 'Ubah Laporan Pembinaan' : 'Tambah Laporan Pembinaan'}
+                </h3>
+              </div>
+              <button 
+                onClick={onClosePembinaanModal} 
+                className="p-1 hover:bg-white/10 rounded-full text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Judul Kegiatan */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Judul Materi</label>
+                <label className="text-xs font-bold text-slate-700">
+                  Judul Kegiatan <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={newMaterialTitle}
                   onChange={(e) => setNewMaterialTitle(e.target.value)}
-                  placeholder="Contoh: SOP Taktis Gelar Selang & Penetrasi"
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none"
+                  placeholder="Contoh: Pelatihan Vertical Rescue Aparatur"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
 
+              {/* Jenis Kategori */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Kategori</label>
+                <label className="text-xs font-bold text-slate-700">
+                  Jenis Kategori <span className="text-red-500">*</span>
+                </label>
                 <select
                   value={newMaterialCategory}
-                  onChange={(e) => setNewMaterialCategory(e.target.value as any)}
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white"
+                  onChange={(e) => setNewMaterialCategory(e.target.value as PembinaanCategory)}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer"
                 >
-                  <option value="Penerapan Core Values BerAKHLAK">Penerapan Core Values BerAKHLAK</option>
-                  <option value="Target SKP">Target SKP</option>
+                  <option value="Pembinaan Aparatur Kebakaran">Pembinaan Aparatur Kebakaran</option>
+                  <option value="Pembinaan Aparatur Pencarian dan Pertolongan">Pembinaan Aparatur Pencarian dan Pertolongan</option>
+                  <option value="Pembinaan Redkar">Pembinaan Redkar</option>
                 </select>
               </div>
 
+              {/* Tanggal Pelaksanaan */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Deskripsi Singkat</label>
+                <label className="text-xs font-bold text-slate-700">
+                  Tanggal Pelaksanaan <span className="text-red-500">*</span>
+                </label>
                 <input
-                  type="text"
-                  value={newMaterialShortDesc}
-                  onChange={(e) => setNewMaterialShortDesc(e.target.value)}
-                  placeholder="Ringkasan tujuan modul..."
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none"
+                  type="date"
+                  value={toInputDateFormat(newMaterialDate)}
+                  onChange={(e) => setNewMaterialDate(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 cursor-pointer font-medium"
                 />
               </div>
 
+              {/* Deskripsi / Ringkasan Kegiatan */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Tahapan Prosedur (Satu baris per langkah)</label>
+                <label className="text-xs font-bold text-slate-700">
+                  Deskripsi / Ringkasan Kegiatan <span className="text-red-500">*</span>
+                </label>
                 <textarea
-                  rows={3}
-                  value={newMaterialContent}
-                  onChange={(e) => setNewMaterialContent(e.target.value)}
-                  placeholder="1. Periksa tekanan pompa&#10;2. Bentangkan selang utama&#10;3. Pasang nozzle"
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none font-mono"
+                  rows={4}
+                  value={newMaterialDescription}
+                  onChange={(e) => setNewMaterialDescription(e.target.value)}
+                  placeholder="Tuliskan materi yang disampaikan, instruktur, skenario praktek di lapangan, atau hasil evaluasi kemampuan peserta..."
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Tips Praktis (Satu baris per tips)</label>
-                <textarea
-                  rows={2}
-                  value={newMaterialTips}
-                  onChange={(e) => setNewMaterialTips(e.target.value)}
-                  placeholder="Gunakan APD lengkap sebelum penetrasi..."
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none font-mono"
-                />
-              </div>
+              {/* Upload Foto Kegiatan */}
+              <ImageUploader
+                label="Upload Foto Dokumentasi Kegiatan"
+                subLabel="Otomatis di-resize maks lebar 800px & dikompresi JPEG agar < 100 KB"
+                value={newMaterialImage}
+                onChange={setNewMaterialImage}
+                onToast={props.onToast}
+                accentColor="emerald"
+                idPrefix="modal-pembinaan"
+              />
 
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                 <button
+                  type="button"
                   onClick={onClosePembinaanModal}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
+                  type="button"
                   onClick={onSaveMaterial}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/10 transition-all cursor-pointer active:scale-95"
                 >
-                  Simpan Modul
+                  {editingMaterial ? 'Perbarui Laporan' : 'Simpan Laporan Pembinaan'}
                 </button>
               </div>
             </div>
@@ -743,87 +822,102 @@ export default function Modals(props: ModalsProps) {
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn overflow-y-auto">
           <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl my-8">
             <div className="p-5 bg-gradient-to-r from-sky-700 to-[#1A237E] text-white flex justify-between items-center">
-              <h3 className="font-extrabold text-base">
-                {editingNspm ? `Ubah Dokumen: ${editingNspm.title}` : 'Tambah Dokumen NSPM & Regulasi'}
-              </h3>
-              <button onClick={onCloseNspmModal} className="p-1 hover:bg-white/10 rounded-full">
+              <div>
+                <span className="text-[10px] bg-white/20 text-white font-bold px-2 py-0.5 rounded uppercase font-mono tracking-wider">
+                  Regulasi & NSPM
+                </span>
+                <h3 className="font-extrabold text-base mt-1">
+                  {editingNspm ? 'Ubah Regulasi' : 'Tambah Regulasi'}
+                </h3>
+              </div>
+              <button 
+                onClick={onCloseNspmModal} 
+                className="p-1 hover:bg-white/10 rounded-full text-white/80 hover:text-white transition-colors cursor-pointer"
+              >
                 <X className="w-5 h-5" />
               </button>
             </div>
 
             <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {/* Judul Regulasi */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Judul Dokumen Regulasi / Protap</label>
+                <label className="text-xs font-bold text-slate-700">
+                  Judul Regulasi <span className="text-red-500">*</span>
+                </label>
                 <input
                   type="text"
                   value={newNspmTitle}
                   onChange={(e) => setNewNspmTitle(e.target.value)}
-                  placeholder="Contoh: SNI 03-3989 Instalasi Sprinkler Otomatis"
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none"
+                  placeholder="Contoh: Peraturan Daerah Kota Bima No. 4 Tentang Damkar"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
                 />
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Kategori NSPM</label>
-                  <select
-                    value={newNspmCategory}
-                    onChange={(e) => setNewNspmCategory(e.target.value as any)}
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white"
-                  >
-                    <option value="Norma">Norma</option>
-                    <option value="Standar">Standar</option>
-                    <option value="Prosedur">Prosedur</option>
-                    <option value="Manual">Manual</option>
-                  </select>
-                </div>
+              {/* Kategori */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Kategori <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={newNspmCategory}
+                  onChange={(e) => setNewNspmCategory(e.target.value)}
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none bg-white focus:border-sky-500 focus:ring-1 focus:ring-sky-500 cursor-pointer font-medium"
+                >
+                  <option value="PERDA">PERDA</option>
+                  <option value="STANDAR">STANDAR</option>
+                  <option value="PROSEDUR">PROSEDUR</option>
+                  <option value="MANUAL">MANUAL</option>
+                </select>
+              </div>
 
-                <div className="space-y-1">
-                  <label className="text-xs font-bold text-slate-700">Kode Dokumen</label>
+              {/* Link Dokumen / Google Drive */}
+              <div className="space-y-1">
+                <label className="text-xs font-bold text-slate-700">
+                  Link Dokumen / Google Drive <span className="text-red-500">*</span>
+                </label>
+                <div className="relative">
+                  <Link2 className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                   <input
-                    type="text"
-                    value={newNspmCode}
-                    onChange={(e) => setNewNspmCode(e.target.value)}
-                    placeholder="Contoh: SNI 03-3989-2000"
-                    className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none font-mono"
+                    type="url"
+                    value={newNspmDriveUrl}
+                    onChange={(e) => setNewNspmDriveUrl(e.target.value)}
+                    placeholder="https://drive.google.com/file/d/..."
+                    className="w-full pl-9 pr-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-mono text-slate-800"
                   />
                 </div>
+                <p className="text-[11px] text-slate-400">
+                  Pastikan izin akses dokumen di Google Drive telah disetel publik (Siapa saja yang memiliki link).
+                </p>
               </div>
 
+              {/* Deskripsi Singkat */}
               <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Ukuran File Dokumen</label>
-                <input
-                  type="text"
-                  value={newNspmFileSize}
-                  onChange={(e) => setNewNspmFileSize(e.target.value)}
-                  placeholder="Contoh: 1.8 MB"
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-xs font-bold text-slate-700">Ringkasan Isi Regulasi</label>
+                <label className="text-xs font-bold text-slate-700">
+                  Deskripsi Singkat <span className="text-red-500">*</span>
+                </label>
                 <textarea
                   rows={3}
                   value={newNspmSummary}
                   onChange={(e) => setNewNspmSummary(e.target.value)}
                   placeholder="Rangkuman ketentuan teknis yang dimuat dalam regulasi ini..."
-                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none"
+                  className="w-full px-3.5 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 font-medium"
                 />
               </div>
 
               <div className="pt-3 border-t border-slate-100 flex justify-end gap-2">
                 <button
+                  type="button"
                   onClick={onCloseNspmModal}
-                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl"
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
                 >
                   Batal
                 </button>
                 <button
+                  type="button"
                   onClick={onSaveNspm}
-                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/10 transition-all cursor-pointer active:scale-95"
                 >
-                  Simpan Dokumen
+                  {editingNspm ? 'Perbarui Regulasi' : 'Simpan Regulasi'}
                 </button>
               </div>
             </div>
@@ -875,7 +969,7 @@ export default function Modals(props: ModalsProps) {
                   <span className="text-slate-500 font-bold block mb-1">Tanggal Pemeriksaan:</span>
                   <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-slate-800 font-medium flex items-center gap-1.5">
                     <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                    <span>{selectedInspeksi.date}</span>
+                    <span>{formatDateDisplay(selectedInspeksi.date)}</span>
                   </div>
                 </div>
 
@@ -894,10 +988,41 @@ export default function Modals(props: ModalsProps) {
               </div>
 
               <div className="space-y-1 text-xs">
-                <span className="text-slate-500 font-bold">Temuan Penyuluh & Catatan Kelayakan:</span>
-                <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-slate-700 leading-relaxed font-medium">
-                  {selectedInspeksi.notes || 'Tidak ada catatan tambahan.'}
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-500 font-bold">Temuan Penyuluh & Catatan Kelayakan:</span>
+                  {!canViewNotes && (
+                    <span className="text-[10.5px] font-bold text-red-600 bg-red-50 border border-red-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                      <Lock className="w-3 h-3 text-red-600" /> Rahasia Jabatan
+                    </span>
+                  )}
                 </div>
+                {canViewNotes ? (
+                  <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-slate-700 leading-relaxed font-medium">
+                    {selectedInspeksi.notes || 'Tidak ada catatan tambahan.'}
+                  </div>
+                ) : (
+                  <div className="p-4 bg-red-50/60 border border-red-200 rounded-xl space-y-2.5">
+                    <div className="text-slate-400 select-none filter blur-[3.5px] text-[11px] leading-relaxed line-clamp-2">
+                      {selectedInspeksi.notes || 'Catatan temuan inspeksi proteksi kebakaran gedung dan rekomendasi sarana penyelamatan teknis dinas.'}
+                    </div>
+                    <div className="flex items-start gap-2 text-red-700 font-bold text-xs">
+                      <Lock className="w-4 h-4 text-red-600 shrink-0 mt-0.5" />
+                      <span className="leading-tight">
+                        🔒 Dokumen Terkunci
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500">
+                      Rincian catatan dan temuan teknis proteksi gedung ini disensor dalam Mode Tamu. Masukkan PIN 4-digit Pimpinan untuk membuka akses.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={onOpenLeadershipPinModal}
+                      className="px-3.5 py-1.5 bg-red-600 hover:bg-red-700 text-white font-bold text-xs rounded-xl shadow-xs inline-flex items-center gap-1.5 cursor-pointer transition-colors active:scale-95"
+                    >
+                      <KeyRound className="w-3.5 h-3.5" /> Masukkan PIN Pimpinan (8914)
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl flex items-start gap-2 text-xs text-amber-800">
@@ -945,8 +1070,9 @@ export default function Modals(props: ModalsProps) {
               <div className="grid grid-cols-2 gap-3 text-xs">
                 <div>
                   <span className="text-slate-500 font-bold block mb-1">Tanggal:</span>
-                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-slate-800 font-medium">
-                    {selectedSocialization.date}
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-slate-800 font-medium flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                    <span>{formatDateDisplay(selectedSocialization.date)}</span>
                   </div>
                 </div>
                 <div>
@@ -983,6 +1109,73 @@ export default function Modals(props: ModalsProps) {
         </div>
       )}
 
+      {/* 8b. PEMBINAAN DETAIL MODAL */}
+      {selectedPembinaan && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-lg overflow-hidden shadow-2xl animate-scaleUp">
+            <div className="p-5 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex justify-between items-start">
+              <div>
+                <span className="text-[9px] bg-white/20 text-white font-black px-2 py-0.5 rounded-md uppercase font-mono tracking-tight">
+                  Dokumentasi Pembinaan
+                </span>
+                <h4 className="font-extrabold text-lg mt-1 leading-snug">{selectedPembinaan.title}</h4>
+              </div>
+              <button 
+                onClick={onCloseSelectedPembinaan} 
+                className="p-1 hover:bg-white/10 rounded-full text-slate-200 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4 max-h-[80vh] overflow-y-auto">
+              {selectedPembinaan.image && (
+                <div className="h-52 w-full rounded-xl overflow-hidden border border-slate-200 shadow-xs">
+                  <img 
+                    src={selectedPembinaan.image} 
+                    alt={selectedPembinaan.title} 
+                    referrerPolicy="no-referrer"
+                    className="w-full h-full object-cover" 
+                  />
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3 text-xs">
+                <div>
+                  <span className="text-slate-500 font-bold block mb-1">Tanggal Pelaksanaan:</span>
+                  <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200 font-mono text-slate-800 font-medium flex items-center gap-1.5">
+                    <Calendar className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>{formatDateDisplay(selectedPembinaan.date)}</span>
+                  </div>
+                </div>
+                <div>
+                  <span className="text-slate-500 font-bold block mb-1">Kategori:</span>
+                  <div className="bg-emerald-50 p-2.5 rounded-xl border border-emerald-200 text-emerald-900 font-bold text-center truncate">
+                    {selectedPembinaan.category}
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-1 text-xs">
+                <span className="text-slate-500 font-bold">Ringkasan / Laporan Kegiatan:</span>
+                <p className="bg-slate-50 p-3.5 rounded-xl border border-slate-200 text-slate-800 leading-relaxed font-medium whitespace-pre-line">
+                  {selectedPembinaan.description}
+                </p>
+              </div>
+
+              <div className="pt-2 flex justify-end">
+                <button
+                  onClick={onCloseSelectedPembinaan}
+                  className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition-colors cursor-pointer"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* 9. DELETE CONFIRMATION MODAL */}
       {confirmDeleteTarget && (
         <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
@@ -1012,6 +1205,116 @@ export default function Modals(props: ModalsProps) {
                 Ya, Hapus Data
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* 10. LEADERSHIP PIN MODAL (Akses Cepat Pimpinan) */}
+      {showLeadershipPinModal && (
+        <div className="fixed inset-0 bg-slate-950/60 backdrop-blur-xs flex items-center justify-center p-4 z-50 animate-fadeIn">
+          <div className="bg-white border border-slate-200 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl animate-scaleUp">
+            {/* Header */}
+            <div className="p-5 bg-gradient-to-r from-amber-500 via-amber-600 to-yellow-600 text-slate-950 flex justify-between items-start">
+              <div className="flex items-center gap-2.5">
+                <div className="w-9 h-9 rounded-xl bg-slate-950/10 border border-slate-950/20 flex items-center justify-center shadow-2xs">
+                  <KeyRound className="w-5 h-5 text-slate-950" />
+                </div>
+                <div>
+                  <h4 className="font-extrabold text-base leading-snug">Akses Cepat Pimpinan</h4>
+                  <p className="text-[11px] text-amber-950 font-semibold">Buka Sensor Temuan Inspeksi</p>
+                </div>
+              </div>
+              <button 
+                type="button"
+                onClick={onCloseLeadershipPinModal} 
+                className="p-1 hover:bg-black/10 rounded-full text-slate-950 transition-colors cursor-pointer"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handlePinSubmit} className="p-5 space-y-4">
+              <div className="text-center space-y-1.5">
+                <p className="text-xs text-slate-600 leading-relaxed font-medium">
+                  Masukkan 4-digit PIN Otoritas Pimpinan untuk membuka sensor catatan rahasia temuan inspeksi.
+                </p>
+                <div className="inline-flex items-center gap-1 bg-slate-100 border border-slate-200/80 px-2.5 py-1 rounded-lg text-[11px] font-mono text-slate-600">
+                  <span>PIN Pimpinan:</span>
+                  <strong className="text-slate-900 font-black tracking-wider">8914</strong>
+                </div>
+              </div>
+
+              {pinError && (
+                <div className="p-2.5 bg-red-50 border border-red-200 text-red-700 text-xs rounded-xl flex items-center gap-2 font-bold animate-shake">
+                  <AlertTriangle className="w-4 h-4 shrink-0 text-red-600" />
+                  <span>{pinError}</span>
+                </div>
+              )}
+
+              {/* Input Display */}
+              <div className="space-y-2">
+                <input
+                  type="password"
+                  maxLength={4}
+                  autoFocus
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  value={pinInput}
+                  onChange={(e) => {
+                    const val = e.target.value.replace(/\D/g, '').slice(0, 4);
+                    setPinInput(val);
+                    setPinError('');
+                  }}
+                  placeholder="••••"
+                  className="w-full text-center text-2xl font-mono tracking-[0.45em] py-3 bg-slate-50 border-2 border-slate-200 rounded-xl focus:outline-none focus:border-amber-500 focus:bg-white transition-all font-black text-slate-900 placeholder:text-slate-300"
+                />
+
+                {/* Keypad Digits */}
+                <div className="grid grid-cols-3 gap-1.5 pt-1">
+                  {['1','2','3','4','5','6','7','8','9','C','0','⌫'].map((btn) => (
+                    <button
+                      key={btn}
+                      type="button"
+                      onClick={() => {
+                        setPinError('');
+                        if (btn === 'C') {
+                          setPinInput('');
+                        } else if (btn === '⌫') {
+                          setPinInput(prev => prev.slice(0, -1));
+                        } else {
+                          setPinInput(prev => prev.length < 4 ? prev + btn : prev);
+                        }
+                      }}
+                      className={`py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+                        btn === 'C' || btn === '⌫'
+                          ? 'bg-slate-100 hover:bg-slate-200 text-slate-700'
+                          : 'bg-slate-50 hover:bg-amber-100 hover:text-amber-950 border border-slate-200/90 text-slate-800'
+                      }`}
+                    >
+                      {btn}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={onCloseLeadershipPinModal}
+                  className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={pinInput.length !== 4}
+                  className="flex-1 py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-50 disabled:cursor-not-allowed text-slate-950 font-black text-xs rounded-xl transition-all shadow-md shadow-amber-900/10 flex items-center justify-center gap-1.5 cursor-pointer active:scale-95"
+                >
+                  <KeyRound className="w-4 h-4" /> Buka Sensor
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

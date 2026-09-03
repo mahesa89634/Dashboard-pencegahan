@@ -1,16 +1,18 @@
 import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 
+// Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: "AIzaSyBESvQ5s6Y1sxKHcbSpEXQhc8nlY-tgbNs",
-  authDomain: "gen-lang-client-0386375318.firebaseapp.com",
-  projectId: "gen-lang-client-0386375318",
-  storageBucket: "gen-lang-client-0386375318.firebasestorage.app",
-  messagingSenderId: "857042174758",
-  appId: "1:857042174758:web:df5c2243f85a7393d8b7e7"
+  apiKey: "AIzaSyDrnV4gD46LpYjD3Qmg6uWo5sMVoQ-3wts",
+  authDomain: "dashbord-pencegahan.firebaseapp.com",
+  projectId: "dashbord-pencegahan",
+  storageBucket: "dashbord-pencegahan.firebasestorage.app",
+  messagingSenderId: "422888991159",
+  appId: "1:422888991159:web:f41cc5b6849d07c5dd6032"
 };
 
+// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 
-// Use the specific firestore database ID from config
-export const db = getFirestore(app, "ai-studio-pencegahandamkar-91ebfc4a-70e8-4ebf-a8c6-acbe00f5db29");
+// Initialize Cloud Firestore and get a reference to the service
+export const db = getFirestore(app);

@@ -26,6 +26,7 @@ interface SidebarProps {
   criticalCount: number;
   volunteerCount: number;
   socializationCount: number;
+  pembinaanCount?: number;
   nspmCount: number;
   isMobileOpen: boolean;
   onCloseMobile: () => void;
@@ -41,6 +42,7 @@ export default function Sidebar({
   criticalCount,
   volunteerCount,
   socializationCount,
+  pembinaanCount,
   nspmCount,
   isMobileOpen,
   onCloseMobile
@@ -79,11 +81,11 @@ export default function Sidebar({
     },
     {
       id: 'pembinaan',
-      label: 'Bimtek Aparatur & Kuis',
+      label: 'Pembinaan Aparatur',
       icon: GraduationCap,
-      badge: 'Kuis Aktif',
+      badge: pembinaanCount !== undefined ? `${pembinaanCount}` : null,
       badgeColor: 'bg-emerald-600 text-white',
-      description: 'SOP, Core Values & Uji Kompetensi'
+      description: 'Dokumentasi & Laporan Kegiatan Aparatur'
     },
     {
       id: 'nspm',

@@ -30,20 +30,35 @@ export interface RedkarVolunteer {
   image?: string;
 }
 
-export interface AparaturMaterial {
+export type PembinaanCategory = 
+  | 'Pembinaan Aparatur Kebakaran' 
+  | 'Pembinaan Aparatur Pencarian dan Pertolongan' 
+  | 'Pembinaan Redkar';
+
+export interface PembinaanActivity {
   id: string;
   title: string;
-  category: 'Penerapan Core Values BerAKHLAK' | 'Target SKP';
-  shortDesc: string;
-  content: string[];
-  tips: string[];
+  category: PembinaanCategory;
+  date: string;
+  description: string;
+  image?: string;
+  // Backward compatibility fields if needed
+  shortDesc?: string;
+  content?: string[];
+  tips?: string[];
 }
+
+// Alias for backwards compatibility
+export type AparaturMaterial = PembinaanActivity;
+
+export type NspmCategory = 'PERDA' | 'STANDAR' | 'PROSEDUR' | 'MANUAL';
 
 export interface NspmDocument {
   id: string;
   title: string;
-  category: 'Norma' | 'Standar' | 'Prosedur' | 'Manual';
-  code: string;
+  category: NspmCategory | string;
+  code?: string;
   summary: string;
-  fileSize: string;
+  driveUrl?: string;
+  fileSize?: string;
 }

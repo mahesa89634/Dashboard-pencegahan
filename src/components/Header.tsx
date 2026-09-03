@@ -61,8 +61,8 @@ export default function Header({
       subtitle: 'Database relawan terlatih per kecamatan di seluruh wilayah administratif Kota Bima'
     },
     pembinaan: {
-      title: 'Bimbingan Teknis & Kompetensi Aparatur',
-      subtitle: 'Modul SOP taktis pemadaman, nilai Core Values BerAKHLAK & kuis evaluasi pemahaman aparatur'
+      title: 'Pembinaan Aparatur Damkarmat',
+      subtitle: 'Dokumentasi & laporan kegiatan pembinaan aparatur kebakaran, pertolongan & REDKAR Kota Bima'
     },
     nspm: {
       title: 'Norma, Standar, Prosedur & Manual (NSPM)',

@@ -40,7 +40,7 @@ export default function SosialisasiView({
   isAdmin
 }: SosialisasiViewProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
 
   const filteredItems = socializations.filter(item => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

@@ -53,7 +53,7 @@ export default function InspeksiView({
 }: InspeksiViewProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
-  const [viewMode, setViewMode] = useState<'table' | 'cards'>('table');
+  const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
 
   const canViewNotes = isAdmin || isLeadershipUnlocked;
 

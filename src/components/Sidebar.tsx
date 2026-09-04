@@ -53,7 +53,7 @@ export default function Sidebar({
       label: 'Pusat Komando (Home)',
       icon: LayoutDashboard,
       badge: null,
-      description: 'Ringkasan & KPI Statistik'
+      description: 'Ringkasan & Statistik'
     },
     {
       id: 'inspeksi',
@@ -135,7 +135,7 @@ export default function Sidebar({
                 <h1 className="font-extrabold text-sm tracking-tight text-white">DAMKARMAT</h1>
                 <span className="text-[9px] font-black bg-red-600 text-white px-1.5 py-0.2 rounded font-mono uppercase">Kota Bima</span>
               </div>
-              <p className="text-[10px] text-slate-400 font-medium">Dashboard Pencegahan & Proteksi</p>
+              <p className="text-[10px] text-slate-400 font-medium">Dashboard Bidang Pencegahan</p>
             </div>
           </div>
         </div>

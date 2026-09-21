@@ -117,7 +117,7 @@ export default function InspeksiView({
       />
 
       {/* 1. TOP STATS HEADER */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Bangunan / Objek</span>
           <div className="flex items-center justify-between mt-2">
@@ -315,8 +315,9 @@ export default function InspeksiView({
         </div>
       </div>
 
-      {/* 3. DATA LIST DISPLAY */}
-      {sortedItems.length === 0 ? (
+      {/* 3. DATA LIST DISPLAY (TAMPILAN INTERAKTIF LAYAR: TABEL / KARTU) */}
+      <div className="print:hidden">
+        {sortedItems.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
           <ShieldAlert className="w-12 h-12 text-slate-300 mx-auto" />
           <h4 className="text-base font-bold text-slate-700">Tidak ada data inspeksi yang sesuai</h4>
@@ -574,6 +575,111 @@ export default function InspeksiView({
           })}
         </div>
       )}
+      </div>
+
+      {/* 4. TAMPILAN RESMI CETAK PDF SKP (LEMBAR LAPORAN DETAIL PER OBJEK / BANGUNAN) */}
+      <div className="hidden print:block space-y-5">
+        {sortedItems.length === 0 ? (
+          <div className="p-8 border border-slate-300 rounded-xl text-center text-xs text-slate-600">
+            Tidak ada data hasil inspeksi proteksi bangunan yang tercatat pada periode ini.
+          </div>
+        ) : (
+          sortedItems.map((item, index) => (
+            <div 
+              key={`print-insp-${item.id}`} 
+              className="border border-slate-400 rounded-xl p-4 bg-white break-inside-avoid page-break-inside-avoid space-y-3.5"
+            >
+              {/* Header Item: Nomor Urut, Nama Gedung, Status Kelayakan */}
+              <div className="flex items-start justify-between border-b border-slate-300 pb-2.5 gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 bg-slate-900 text-white rounded flex items-center justify-center font-bold text-xs font-mono shrink-0 mt-0.5">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-950 uppercase tracking-tight">
+                      {item.name}
+                    </h3>
+                    <p className="text-[11px] text-slate-700 mt-0.5">
+                      Lokasi / Alamat: {item.address}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className={`inline-block px-2.5 py-1 rounded text-xs font-extrabold uppercase border ${
+                    item.status === 'Aman'
+                      ? 'bg-emerald-50 text-emerald-950 border-emerald-400'
+                      : item.status === 'Perlu Perbaikan'
+                      ? 'bg-amber-50 text-amber-950 border-amber-400'
+                      : 'bg-red-50 text-red-950 border-red-400'
+                  }`}>
+                    {item.status}
+                  </span>
+                  <span className="block text-[9.5px] font-mono text-slate-500 mt-0.5">ID: {item.id}</span>
+                </div>
+              </div>
+
+              {/* Baris Konten: Foto Berdampingan dengan Data Lengkap */}
+              <div className="grid grid-cols-12 gap-4 items-start">
+                {/* Foto Dokumentasi Inspeksi (Ukuran sedang & jelas) */}
+                <div className="col-span-5">
+                  {item.image ? (
+                    <div className="border border-slate-300 rounded-lg overflow-hidden bg-slate-100">
+                      <img 
+                        src={item.image} 
+                        alt={item.name} 
+                        referrerPolicy="no-referrer"
+                        className="w-full h-44 object-cover" 
+                      />
+                      <p className="text-[9.5px] text-center text-slate-600 py-1 bg-slate-50 border-t border-slate-200 font-sans italic">
+                        Foto Dokumentasi Inspeksi
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="h-40 border border-dashed border-slate-300 rounded-lg bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-xs">
+                      <Building className="w-8 h-8 text-slate-300 mb-1" />
+                      <span className="text-[10px] italic">(Dokumentasi foto tidak tersedia)</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tabel Rincian Data */}
+                <div className="col-span-7 space-y-2.5">
+                  <table className="w-full text-xs">
+                    <tbody>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700 w-36">Nama Gedung / Usaha</td>
+                        <td className="py-1 text-slate-950 font-bold">: {item.name}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700">Tanggal Inspeksi</td>
+                        <td className="py-1 text-slate-950 font-semibold">: {formatDateDisplay(item.date)}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700">Status Kelayakan</td>
+                        <td className="py-1 text-slate-950 font-bold">: {item.status}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700">Alamat Lengkap</td>
+                        <td className="py-1 text-slate-900 leading-tight">: {item.address}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Catatan / Temuan / Rekomendasi Hasil Inspeksi Secara Lengkap */}
+                  <div className="pt-1">
+                    <span className="text-[11px] font-bold text-slate-900 uppercase tracking-tight block mb-1">
+                      Catatan / Temuan / Rekomendasi Hasil Inspeksi:
+                    </span>
+                    <div className="bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-[11.5px] text-slate-950 leading-relaxed whitespace-pre-line">
+                      {item.notes ? item.notes : 'Sistem proteksi kebakaran dalam kondisi sesuai standar tanpa temuan pelanggaran khusus.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* TITIMANGSA DAN TANDA TANGAN PEJABAT RESMI KHUSUS CETAK SKP */}
       <OfficialSkpSignatures

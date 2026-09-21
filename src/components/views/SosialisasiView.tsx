@@ -95,7 +95,7 @@ export default function SosialisasiView({
       />
 
       {/* 1. TOP HIGHLIGHT STATS BANNER */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 print:hidden">
         <div className="bg-gradient-to-br from-[#1A237E] to-indigo-900 rounded-2xl p-5 text-white shadow-xs">
           <span className="text-xs font-bold text-indigo-200 uppercase tracking-wider block">Total Warga Teredukasi</span>
           <div className="flex items-center justify-between mt-2">
@@ -196,8 +196,9 @@ export default function SosialisasiView({
         </div>
       </div>
 
-      {/* 3. DATA LIST DISPLAY */}
-      {sortedItems.length === 0 ? (
+      {/* 3. DATA LIST DISPLAY (TAMPILAN INTERAKTIF LAYAR: TABEL / KARTU) */}
+      <div className="print:hidden">
+        {sortedItems.length === 0 ? (
         <div className="bg-white rounded-2xl border border-slate-200 p-12 text-center space-y-3">
           <Users className="w-12 h-12 text-slate-300 mx-auto" />
           <h4 className="text-base font-bold text-slate-700">Tidak ada kegiatan sosialisasi yang ditemukan</h4>
@@ -403,6 +404,109 @@ export default function SosialisasiView({
           ))}
         </div>
       )}
+      </div>
+
+      {/* 4. TAMPILAN RESMI CETAK PDF SKP (LEMBAR LAPORAN DETAIL PER KEGIATAN PEMBERDAYAAN WARGA) */}
+      <div className="hidden print:block space-y-5">
+        {sortedItems.length === 0 ? (
+          <div className="p-8 border border-slate-300 rounded-xl text-center text-xs text-slate-600">
+            Tidak ada data kegiatan sosialisasi atau edukasi warga yang tercatat pada periode ini.
+          </div>
+        ) : (
+          sortedItems.map((item, index) => (
+            <div 
+              key={`print-soc-${item.id}`} 
+              className="border border-slate-400 rounded-xl p-4 bg-white break-inside-avoid page-break-inside-avoid space-y-3.5"
+            >
+              {/* Header Item: Nomor Urut, Judul Kegiatan, Jumlah Peserta */}
+              <div className="flex items-start justify-between border-b border-slate-300 pb-2.5 gap-3">
+                <div className="flex items-start gap-2.5">
+                  <span className="w-6 h-6 bg-indigo-900 text-white rounded flex items-center justify-center font-bold text-xs font-mono shrink-0 mt-0.5">
+                    {index + 1}
+                  </span>
+                  <div>
+                    <h3 className="text-sm font-black text-slate-950 uppercase tracking-tight">
+                      {item.title}
+                    </h3>
+                    <p className="text-[11px] text-slate-700 mt-0.5">
+                      Lokasi / Alamat: {item.location}
+                    </p>
+                  </div>
+                </div>
+                <div className="text-right shrink-0">
+                  <span className="inline-block px-2.5 py-1 bg-indigo-50 border border-indigo-300 text-indigo-950 rounded text-xs font-extrabold">
+                    {item.participants} Orang Peserta
+                  </span>
+                  <span className="block text-[9.5px] font-mono text-slate-500 mt-0.5">ID: {item.id}</span>
+                </div>
+              </div>
+
+              {/* Baris Konten: Foto Berdampingan dengan Tabel Data */}
+              <div className="grid grid-cols-12 gap-4 items-start">
+                {/* Foto Dokumen Kegiatan (Ukuran sedang & jelas) */}
+                <div className="col-span-5">
+                  {item.image ? (
+                    <div className="border border-slate-300 rounded-lg overflow-hidden bg-slate-100">
+                      <img 
+                        src={item.image} 
+                        alt={item.title} 
+                        referrerPolicy="no-referrer"
+                        className="w-full h-44 object-cover" 
+                      />
+                      <p className="text-[9.5px] text-center text-slate-600 py-1 bg-slate-50 border-t border-slate-200 font-sans italic">
+                        Foto Dokumen Kegiatan
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="h-40 border border-dashed border-slate-300 rounded-lg bg-slate-50 flex flex-col items-center justify-center text-slate-400 text-xs">
+                      <Users className="w-8 h-8 text-slate-300 mb-1" />
+                      <span className="text-[10px] italic">(Dokumentasi foto tidak tersedia)</span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Tabel Rincian Data Kegiatan */}
+                <div className="col-span-7 space-y-2.5">
+                  <table className="w-full text-xs">
+                    <tbody>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700 w-36">Nama / Judul Kegiatan</td>
+                        <td className="py-1 text-slate-950 font-bold">: {item.title}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700">Tanggal Pelaksanaan</td>
+                        <td className="py-1 text-slate-950 font-semibold">: {formatDateDisplay(item.date)}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700">Jumlah Peserta</td>
+                        <td className="py-1 text-slate-950 font-bold">: {item.participants} Orang Warga/Masyarakat</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700">Lokasi Acara / Alamat</td>
+                        <td className="py-1 text-slate-900 leading-tight">: {item.location}</td>
+                      </tr>
+                      <tr className="border-b border-slate-200">
+                        <td className="py-1 font-bold text-slate-700">Nama Pemateri / Petugas</td>
+                        <td className="py-1 text-slate-950 font-semibold">: {item.speaker}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+
+                  {/* Rangkuman / Deskripsi Hasil Kegiatan Lengkap */}
+                  <div className="pt-1">
+                    <span className="text-[11px] font-bold text-slate-900 uppercase tracking-tight block mb-1">
+                      Rangkuman / Deskripsi Hasil Kegiatan Lengkap:
+                    </span>
+                    <div className="bg-slate-50 border border-slate-300 rounded-lg p-2.5 text-[11.5px] text-slate-950 leading-relaxed whitespace-pre-line">
+                      {item.description ? item.description : 'Kegiatan edukasi warga terlaksana dengan baik dan mencapai target kesiapsiagaan.'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
 
       {/* TITIMANGSA DAN TANDA TANGAN PEJABAT RESMI KHUSUS CETAK SKP */}
       <OfficialSkpSignatures

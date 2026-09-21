@@ -22,7 +22,10 @@ import {
   Calendar
 } from 'lucide-react';
 import { InspeksiItem, SocializationRecap, RedkarVolunteer, AparaturMaterial, NspmDocument } from '../../types';
-import { formatDateDisplay } from '../../utils/dateUtils';
+import { formatDateDisplay, matchDateMonthYear } from '../../utils/dateUtils';
+import OfficialSkpHeader from '../skp/OfficialSkpHeader';
+import OfficialSkpSignatures from '../skp/OfficialSkpSignatures';
+import AdminSkpFilterBar from '../skp/AdminSkpFilterBar';
 
 interface DashboardHomeProps {
   inspeksiList: InspeksiItem[];
@@ -40,6 +43,11 @@ interface DashboardHomeProps {
   onExportSocialization: () => void;
   onExportRedkar: () => void;
   isAdmin: boolean;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
+  selectedYear: string;
+  onYearChange: (year: string) => void;
+  onPrintPdf: () => void;
 }
 
 export default function DashboardHome({
@@ -57,13 +65,27 @@ export default function DashboardHome({
   onExportInspeksi,
   onExportSocialization,
   onExportRedkar,
-  isAdmin
+  isAdmin,
+  selectedMonth,
+  onMonthChange,
+  selectedYear,
+  onYearChange,
+  onPrintPdf
 }: DashboardHomeProps) {
-  // Calculated stats
-  const criticalCount = inspeksiList.filter(i => i.status === 'Kritis').length;
-  const needFixCount = inspeksiList.filter(i => i.status === 'Perlu Perbaikan').length;
-  const safeCount = inspeksiList.filter(i => i.status === 'Aman').length;
-  const totalParticipants = socializations.reduce((acc, curr) => acc + (Number(curr.participants) || 0), 0);
+  // Filter data berdasarkan bulan dan tahun saat mode Admin aktif
+  const filteredInspeksi = isAdmin
+    ? inspeksiList.filter(i => matchDateMonthYear(i.date, selectedMonth, selectedYear))
+    : inspeksiList;
+
+  const filteredSocializations = isAdmin
+    ? socializations.filter(s => matchDateMonthYear(s.date, selectedMonth, selectedYear))
+    : socializations;
+
+  // Calculated stats berdasarkan periode terpilih
+  const criticalCount = filteredInspeksi.filter(i => i.status === 'Kritis').length;
+  const needFixCount = filteredInspeksi.filter(i => i.status === 'Perlu Perbaikan').length;
+  const safeCount = filteredInspeksi.filter(i => i.status === 'Aman').length;
+  const totalParticipants = filteredSocializations.reduce((acc, curr) => acc + (Number(curr.participants) || 0), 0);
   const activeVolunteers = volunteers.filter(v => v.status === 'Aktif').length;
 
   // Kelurahan distribution count
@@ -78,6 +100,26 @@ export default function DashboardHome({
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
+      {/* KOP LAPORAN RESMI KHUSUS CETAK SKP */}
+      <OfficialSkpHeader
+        currentView="home"
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
+
+      {/* FILTER BULAN DAN TAHUN KHUSUS ADMIN DENGAN TOMBOL CETAK PDF */}
+      <AdminSkpFilterBar
+        isAdmin={isAdmin}
+        selectedMonth={selectedMonth}
+        onMonthChange={onMonthChange}
+        selectedYear={selectedYear}
+        onYearChange={onYearChange}
+        onPrintPdf={onPrintPdf}
+        filteredCount={filteredInspeksi.length + filteredSocializations.length}
+        totalCount={inspeksiList.length + socializations.length}
+        label="kegiatan & audit"
+      />
+
       {/* 1. TOP HERO EMERGENCY & COMMAND BANNER */}
       <div className="bg-gradient-to-r from-[#1A237E] via-[#283593] to-[#D32F2F] rounded-2xl p-5 md:p-7 text-white shadow-lg relative overflow-hidden">
         {/* Background Grid Accent */}
@@ -144,7 +186,7 @@ export default function DashboardHome({
           </div>
           <div className="mt-4">
             <span className="text-2xl sm:text-3xl font-black text-slate-900 font-mono tracking-tight">
-              {inspeksiList.length}
+              {filteredInspeksi.length}
             </span>
             <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider mt-0.5">
               Gedung / Sarana Diperiksa
@@ -183,7 +225,7 @@ export default function DashboardHome({
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
             <span className="text-emerald-600 font-semibold">{activeVolunteers} Personil Aktif</span>
-            <span className="text-slate-400 group-hover:text-slate-700 flex items-center gap-0.5">
+            <span className="text-slate-400 group-hover:text-slate-700 flex items-center gap-0.5 print:hidden">
               Detail <ChevronRight className="w-3 h-3" />
             </span>
           </div>
@@ -199,7 +241,7 @@ export default function DashboardHome({
               <Users className="w-6 h-6" />
             </div>
             <span className="text-[10px] font-bold bg-indigo-100 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-200">
-              {socializations.length} Kegiatan
+              {filteredSocializations.length} Kegiatan
             </span>
           </div>
           <div className="mt-4">
@@ -212,7 +254,7 @@ export default function DashboardHome({
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
             <span>Dapur Aman & Sekolah</span>
-            <span className="text-slate-400 group-hover:text-slate-700 flex items-center gap-0.5">
+            <span className="text-slate-400 group-hover:text-slate-700 flex items-center gap-0.5 print:hidden">
               Detail <ChevronRight className="w-3 h-3" />
             </span>
           </div>
@@ -304,7 +346,7 @@ export default function DashboardHome({
               </p>
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 print:hidden">
               <button
                 id="dash-export-inspeksi"
                 onClick={onExportInspeksi}
@@ -317,7 +359,7 @@ export default function DashboardHome({
                 onClick={() => onNavigate('inspeksi')}
                 className="text-xs font-bold text-red-600 hover:text-red-700 flex items-center gap-1"
               >
-                Lihat Semua ({inspeksiList.length}) <ArrowRight className="w-3.5 h-3.5" />
+                Lihat Semua ({filteredInspeksi.length}) <ArrowRight className="w-3.5 h-3.5" />
               </button>
             </div>
           </div>
@@ -331,22 +373,22 @@ export default function DashboardHome({
                   <th className="py-2.5 px-3">Alamat</th>
                   <th className="py-2.5 px-3">Tanggal</th>
                   <th className="py-2.5 px-3 text-center">Status Kelayakan</th>
-                  <th className="py-2.5 px-3 text-right">Aksi</th>
+                  <th className="py-2.5 px-3 text-right print:hidden">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
-                {inspeksiList.length === 0 ? (
+                {filteredInspeksi.length === 0 ? (
                   <tr>
                     <td colSpan={5} className="py-8 text-center text-slate-400">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <Building2 className="w-8 h-8 text-slate-300" />
-                        <span className="font-bold text-xs text-slate-600">Belum ada data audit / inspeksi gedung</span>
-                        <span className="text-[11px] text-slate-400">Gunakan tombol "Tambah Inspeksi" untuk merekam hasil audit baru</span>
+                        <span className="font-bold text-xs text-slate-600">Tidak ada data audit / inspeksi pada periode ini</span>
+                        <span className="text-[11px] text-slate-400">Pilih filter bulan/tahun lain atau ubah ke "Semua Bulan"</span>
                       </div>
                     </td>
                   </tr>
                 ) : (
-                  inspeksiList.slice(0, 5).map((item) => (
+                  filteredInspeksi.slice(0, 5).map((item) => (
                     <tr key={item.id} className="hover:bg-slate-50/80 transition-colors">
                       <td className="py-3 px-3">
                         <div className="font-bold text-slate-900 text-[12.5px] flex items-center gap-2">
@@ -372,7 +414,7 @@ export default function DashboardHome({
                           {item.status}
                         </span>
                       </td>
-                      <td className="py-3 px-3 text-right whitespace-nowrap">
+                      <td className="py-3 px-3 text-right whitespace-nowrap print:hidden">
                         <button
                           onClick={() => onSelectInspeksi(item)}
                           className="px-2.5 py-1 bg-slate-100 hover:bg-[#1A237E] hover:text-white text-slate-700 rounded-lg text-[11px] font-bold transition-colors cursor-pointer"
@@ -399,7 +441,7 @@ export default function DashboardHome({
               </h3>
               <button 
                 onClick={() => onNavigate('redkar')}
-                className="text-[11px] font-bold text-amber-700 hover:underline"
+                className="text-[11px] font-bold text-amber-700 hover:underline print:hidden"
               >
                 Lihat 41 Kelurahan
               </button>
@@ -443,35 +485,35 @@ export default function DashboardHome({
                 <h4 className="font-black text-sm text-white">Edukasi Warga Terkini</h4>
               </div>
               <span className="text-[9px] bg-white/20 px-2 py-0.5 rounded-full font-bold uppercase">
-                {socializations.length} Sesi
+                {filteredSocializations.length} Sesi
               </span>
             </div>
 
-            {socializations.length > 0 ? (
+            {filteredSocializations.length > 0 ? (
               <div className="bg-white/10 rounded-xl p-3 border border-white/10 space-y-2">
-                <h5 className="font-bold text-xs text-yellow-300">{socializations[0].title}</h5>
+                <h5 className="font-bold text-xs text-yellow-300">{filteredSocializations[0].title}</h5>
                 <p className="text-[11px] text-slate-200 leading-snug line-clamp-2">
-                  {socializations[0].description}
+                  {filteredSocializations[0].description}
                 </p>
                 <div className="flex items-center justify-between text-[10px] text-slate-300 pt-1">
                   <span className="flex items-center gap-1">
-                    <Calendar className="w-3 h-3" /> {formatDateDisplay(socializations[0].date)}
+                    <Calendar className="w-3 h-3" /> {formatDateDisplay(filteredSocializations[0].date)}
                   </span>
                   <span className="font-bold text-white bg-indigo-800/80 px-2 py-0.5 rounded">
-                    {socializations[0].participants} Peserta
+                    {filteredSocializations[0].participants} Peserta
                   </span>
                 </div>
               </div>
             ) : (
               <div className="bg-white/10 rounded-xl p-3 border border-white/10 text-center space-y-1">
-                <p className="text-xs text-indigo-100 font-medium">Belum ada rekap edukasi warga</p>
-                <p className="text-[10px] text-indigo-300">Klik "Buat Sosialisasi" untuk input kegiatan</p>
+                <p className="text-xs text-indigo-100 font-medium">Tidak ada kegiatan edukasi pada periode ini</p>
+                <p className="text-[10px] text-indigo-300">Pilih filter periode lain atau ubah ke "Semua Bulan"</p>
               </div>
             )}
 
             <button
               onClick={() => onNavigate('edukasi')}
-              className="w-full py-2 bg-white text-indigo-950 font-black text-xs rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs"
+              className="w-full py-2 bg-white text-indigo-950 font-black text-xs rounded-xl hover:bg-slate-100 transition-colors flex items-center justify-center gap-1 cursor-pointer shadow-xs print:hidden"
             >
               Lihat Seluruh Rekap Edukasi <ArrowRight className="w-3.5 h-3.5" />
             </button>
@@ -480,6 +522,12 @@ export default function DashboardHome({
         </div>
 
       </div>
+
+      {/* TITIMANGSA DAN TANDA TANGAN PEJABAT RESMI KHUSUS CETAK SKP */}
+      <OfficialSkpSignatures
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }

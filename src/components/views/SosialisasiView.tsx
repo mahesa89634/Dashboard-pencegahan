@@ -18,7 +18,10 @@ import {
   ArrowDownNarrowWide
 } from 'lucide-react';
 import { SocializationRecap } from '../../types';
-import { formatDateDisplay, sortByDateDesc } from '../../utils/dateUtils';
+import { formatDateDisplay, sortByDateDesc, matchDateMonthYear } from '../../utils/dateUtils';
+import OfficialSkpHeader from '../skp/OfficialSkpHeader';
+import OfficialSkpSignatures from '../skp/OfficialSkpSignatures';
+import AdminSkpFilterBar from '../skp/AdminSkpFilterBar';
 
 interface SosialisasiViewProps {
   socializations: SocializationRecap[];
@@ -28,6 +31,11 @@ interface SosialisasiViewProps {
   onSelectDetail: (item: SocializationRecap) => void;
   onExportExcel: () => void;
   isAdmin: boolean;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
+  selectedYear: string;
+  onYearChange: (year: string) => void;
+  onPrintPdf: () => void;
 }
 
 export default function SosialisasiView({
@@ -37,12 +45,22 @@ export default function SosialisasiView({
   onDeleteSocialization,
   onSelectDetail,
   onExportExcel,
-  isAdmin
+  isAdmin,
+  selectedMonth,
+  onMonthChange,
+  selectedYear,
+  onYearChange,
+  onPrintPdf
 }: SosialisasiViewProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
 
-  const filteredItems = socializations.filter(item => 
+  // Filter berdasarkan periode bulan & tahun khusus Admin
+  const periodFilteredList = isAdmin
+    ? socializations.filter(item => matchDateMonthYear(item.date, selectedMonth, selectedYear))
+    : socializations;
+
+  const filteredItems = periodFilteredList.filter(item => 
     item.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
     item.speaker.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -52,10 +70,30 @@ export default function SosialisasiView({
   // Automatically sort by date descending (newest to oldest)
   const sortedItems = sortByDateDesc(filteredItems);
 
-  const totalParticipants = socializations.reduce((acc, curr) => acc + (Number(curr.participants) || 0), 0);
+  const totalParticipants = periodFilteredList.reduce((acc, curr) => acc + (Number(curr.participants) || 0), 0);
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
+      {/* KOP LAPORAN RESMI KHUSUS CETAK SKP */}
+      <OfficialSkpHeader
+        currentView="edukasi"
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
+
+      {/* FILTER BULAN & TAHUN KHUSUS ADMIN DENGAN TOMBOL CETAK PDF */}
+      <AdminSkpFilterBar
+        isAdmin={isAdmin}
+        selectedMonth={selectedMonth}
+        onMonthChange={onMonthChange}
+        selectedYear={selectedYear}
+        onYearChange={onYearChange}
+        onPrintPdf={onPrintPdf}
+        filteredCount={periodFilteredList.length}
+        totalCount={socializations.length}
+        label="kegiatan edukasi warga"
+      />
+
       {/* 1. TOP HIGHLIGHT STATS BANNER */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-br from-[#1A237E] to-indigo-900 rounded-2xl p-5 text-white shadow-xs">
@@ -70,7 +108,7 @@ export default function SosialisasiView({
         <div className="bg-white rounded-2xl p-5 border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Sesi Sosialisasi</span>
           <div className="flex items-center justify-between mt-2">
-            <span className="text-3xl font-black font-mono text-slate-900">{socializations.length}</span>
+            <span className="text-3xl font-black font-mono text-slate-900">{periodFilteredList.length}</span>
             <span className="p-3 bg-indigo-50 text-indigo-600 rounded-xl"><BookOpenCheck className="w-6 h-6" /></span>
           </div>
           <p className="text-[11px] text-slate-500 mt-2">Di sekolah, instansi, kantor & lingkungan RT/RW</p>
@@ -87,7 +125,7 @@ export default function SosialisasiView({
       </div>
 
       {/* 2. FILTER & ACTION TOOLBAR */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col gap-4">
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col gap-4 print:hidden">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="relative flex-1 max-w-md">
             <Search className="w-4 h-4 absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -127,7 +165,7 @@ export default function SosialisasiView({
               <span>Urutan: Tanggal Terbaru ke Terlama (Descending)</span>
             </span>
             <span className="text-slate-400 hidden sm:inline">•</span>
-            <span className="text-slate-500 hidden sm:inline">Menampilkan {sortedItems.length} dari {socializations.length} kegiatan</span>
+            <span className="text-slate-500 hidden sm:inline">Menampilkan {sortedItems.length} dari {periodFilteredList.length} kegiatan</span>
           </div>
 
           {/* View Mode Toggle */}
@@ -180,7 +218,7 @@ export default function SosialisasiView({
                   <th className="py-3.5 px-4">Pemateri / Instruktur</th>
                   <th className="py-3.5 px-4 text-center">Peserta</th>
                   <th className="py-3.5 px-4">Ringkasan Materi</th>
-                  <th className="py-3.5 px-4 text-right">Aksi</th>
+                  <th className="py-3.5 px-4 text-right print:hidden">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
@@ -236,7 +274,7 @@ export default function SosialisasiView({
                         {item.description || '-'}
                       </p>
                     </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                    <td className="py-3 px-4 text-right whitespace-nowrap print:hidden">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => onSelectDetail(item)}
@@ -334,7 +372,7 @@ export default function SosialisasiView({
                 </div>
 
                 {/* Footer Actions */}
-                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 print:hidden">
                   <button
                     onClick={() => onSelectDetail(item)}
                     className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
@@ -365,6 +403,12 @@ export default function SosialisasiView({
           ))}
         </div>
       )}
+
+      {/* TITIMANGSA DAN TANDA TANGAN PEJABAT RESMI KHUSUS CETAK SKP */}
+      <OfficialSkpSignatures
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }

@@ -24,7 +24,10 @@ import {
   ShieldCheck
 } from 'lucide-react';
 import { InspeksiItem } from '../../types';
-import { formatDateDisplay, sortByDateDesc } from '../../utils/dateUtils';
+import { formatDateDisplay, sortByDateDesc, matchDateMonthYear } from '../../utils/dateUtils';
+import OfficialSkpHeader from '../skp/OfficialSkpHeader';
+import OfficialSkpSignatures from '../skp/OfficialSkpSignatures';
+import AdminSkpFilterBar from '../skp/AdminSkpFilterBar';
 
 interface InspeksiViewProps {
   inspeksiList: InspeksiItem[];
@@ -37,6 +40,11 @@ interface InspeksiViewProps {
   isLeadershipUnlocked: boolean;
   onOpenPinModal: () => void;
   onLockLeadership: () => void;
+  selectedMonth: string;
+  onMonthChange: (month: string) => void;
+  selectedYear: string;
+  onYearChange: (year: string) => void;
+  onPrintPdf: () => void;
 }
 
 export default function InspeksiView({
@@ -49,7 +57,12 @@ export default function InspeksiView({
   isAdmin,
   isLeadershipUnlocked,
   onOpenPinModal,
-  onLockLeadership
+  onLockLeadership,
+  selectedMonth,
+  onMonthChange,
+  selectedYear,
+  onYearChange,
+  onPrintPdf
 }: InspeksiViewProps) {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -57,7 +70,12 @@ export default function InspeksiView({
 
   const canViewNotes = isAdmin || isLeadershipUnlocked;
 
-  const filteredItems = inspeksiList.filter(item => {
+  // Filter berdasarkan periode bulan & tahun khusus Admin
+  const periodFilteredList = isAdmin
+    ? inspeksiList.filter(item => matchDateMonthYear(item.date, selectedMonth, selectedYear))
+    : inspeksiList;
+
+  const filteredItems = periodFilteredList.filter(item => {
     const matchesNameOrAddress = 
       item.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       item.address.toLowerCase().includes(searchQuery.toLowerCase());
@@ -72,18 +90,38 @@ export default function InspeksiView({
   // Automatically sort by date descending (newest to oldest)
   const sortedItems = sortByDateDesc(filteredItems);
 
-  const criticalCount = inspeksiList.filter(i => i.status === 'Kritis').length;
-  const needFixCount = inspeksiList.filter(i => i.status === 'Perlu Perbaikan').length;
-  const safeCount = inspeksiList.filter(i => i.status === 'Aman').length;
+  const criticalCount = periodFilteredList.filter(i => i.status === 'Kritis').length;
+  const needFixCount = periodFilteredList.filter(i => i.status === 'Perlu Perbaikan').length;
+  const safeCount = periodFilteredList.filter(i => i.status === 'Aman').length;
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
+      {/* KOP LAPORAN RESMI KHUSUS CETAK SKP */}
+      <OfficialSkpHeader
+        currentView="inspeksi"
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
+
+      {/* FILTER BULAN & TAHUN KHUSUS ADMIN DENGAN TOMBOL CETAK PDF */}
+      <AdminSkpFilterBar
+        isAdmin={isAdmin}
+        selectedMonth={selectedMonth}
+        onMonthChange={onMonthChange}
+        selectedYear={selectedYear}
+        onYearChange={onYearChange}
+        onPrintPdf={onPrintPdf}
+        filteredCount={periodFilteredList.length}
+        totalCount={inspeksiList.length}
+        label="laporan audit gedung"
+      />
+
       {/* 1. TOP STATS HEADER */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Bangunan / Objek</span>
           <div className="flex items-center justify-between mt-2">
-            <span className="text-2xl font-black text-slate-900 font-mono">{inspeksiList.length}</span>
+            <span className="text-2xl font-black text-slate-900 font-mono">{periodFilteredList.length}</span>
             <span className="p-2 bg-slate-100 text-slate-700 rounded-xl"><Building className="w-5 h-5" /></span>
           </div>
         </div>
@@ -114,7 +152,7 @@ export default function InspeksiView({
       </div>
 
       {/* 2. FILTER & CONTROLS TOOLBAR */}
-      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col gap-4">
+      <div className="bg-white rounded-2xl p-4 border border-slate-200 shadow-2xs flex flex-col gap-4 print:hidden">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           {/* Search Bar */}
           <div className="relative flex-1 max-w-md">
@@ -138,7 +176,7 @@ export default function InspeksiView({
                   : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
               }`}
             >
-              Semua ({inspeksiList.length})
+              Semua ({periodFilteredList.length})
             </button>
             <button
               onClick={() => setStatusFilter('Kritis')}
@@ -298,7 +336,7 @@ export default function InspeksiView({
                   <th className="py-3.5 px-4">Tanggal Pemeriksaan</th>
                   <th className="py-3.5 px-4 text-center">Status Kelayakan</th>
                   <th className="py-3.5 px-4">Temuan / Catatan</th>
-                  <th className="py-3.5 px-4 text-right">Aksi</th>
+                  <th className="py-3.5 px-4 text-right print:hidden">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
@@ -370,7 +408,7 @@ export default function InspeksiView({
                         </button>
                       )}
                     </td>
-                    <td className="py-3 px-4 text-right whitespace-nowrap">
+                    <td className="py-3 px-4 text-right whitespace-nowrap print:hidden">
                       <div className="flex items-center justify-end gap-1.5">
                         <button
                           onClick={() => onSelectDetail(item)}
@@ -504,7 +542,7 @@ export default function InspeksiView({
                   </div>
 
                   {/* Action Buttons Footer */}
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
+                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 print:hidden">
                     <button
                       onClick={() => onSelectDetail(item)}
                       className="px-3 py-1.5 bg-[#1A237E] hover:bg-[#283593] text-white rounded-xl text-xs font-bold transition-all shadow-2xs cursor-pointer active:scale-95"
@@ -536,6 +574,12 @@ export default function InspeksiView({
           })}
         </div>
       )}
+
+      {/* TITIMANGSA DAN TANDA TANGAN PEJABAT RESMI KHUSUS CETAK SKP */}
+      <OfficialSkpSignatures
+        selectedMonth={selectedMonth}
+        selectedYear={selectedYear}
+      />
     </div>
   );
 }

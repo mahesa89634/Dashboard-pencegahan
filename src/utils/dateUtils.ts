@@ -124,3 +124,75 @@ export function sortByDateDesc<T extends { date: string }>(items: T[]): T[] {
     return timeB - timeA;
   });
 }
+
+export const MONTHS_LIST = [
+  { value: 'all', label: 'Semua Bulan' },
+  { value: '1', label: 'Januari' },
+  { value: '2', label: 'Februari' },
+  { value: '3', label: 'Maret' },
+  { value: '4', label: 'April' },
+  { value: '5', label: 'Mei' },
+  { value: '6', label: 'Juni' },
+  { value: '7', label: 'Juli' },
+  { value: '8', label: 'Agustus' },
+  { value: '9', label: 'September' },
+  { value: '10', label: 'Oktober' },
+  { value: '11', label: 'November' },
+  { value: '12', label: 'Desember' }
+];
+
+export const YEARS_LIST = [
+  { value: 'all', label: 'Semua Tahun' },
+  { value: '2024', label: '2024' },
+  { value: '2025', label: '2025' },
+  { value: '2026', label: '2026' },
+  { value: '2027', label: '2027' },
+  { value: '2028', label: '2028' }
+];
+
+/**
+ * Checks if a date matches the specified month ('all' or '1'..'12') and year ('all' or '2026'..)
+ */
+export function matchDateMonthYear(
+  dateStr?: string | null,
+  monthFilter: string = 'all',
+  yearFilter: string = 'all'
+): boolean {
+  if (monthFilter === 'all' && yearFilter === 'all') return true;
+  if (!dateStr || typeof dateStr !== 'string') return false;
+
+  const ts = parseDateToTimestamp(dateStr);
+  if (!ts) return false;
+
+  const d = new Date(ts);
+  const itemMonth = d.getMonth() + 1; // 1 to 12
+  const itemYear = d.getFullYear();
+
+  const matchesMonth = monthFilter === 'all' || itemMonth === parseInt(monthFilter, 10);
+  const matchesYear = yearFilter === 'all' || itemYear === parseInt(yearFilter, 10);
+
+  return matchesMonth && matchesYear;
+}
+
+/**
+ * Formats a descriptive label for the active filter period (for display and SKP PDF Kop).
+ */
+export function getPeriodLabel(monthFilter: string, yearFilter: string): string {
+  const monthNames = [
+    '', 'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+    'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+  ];
+  const m = parseInt(monthFilter, 10);
+  const monthText = (m >= 1 && m <= 12) ? monthNames[m] : 'Semua Bulan';
+
+  if (monthFilter === 'all' && yearFilter === 'all') {
+    return 'Semua Periode (Seluruh Rekam Data)';
+  }
+  if (monthFilter === 'all' && yearFilter !== 'all') {
+    return `Tahun ${yearFilter} (Seluruh Bulan)`;
+  }
+  if (monthFilter !== 'all' && yearFilter === 'all') {
+    return `Bulan ${monthText} (Semua Tahun)`;
+  }
+  return `Bulan ${monthText} ${yearFilter}`;
+}

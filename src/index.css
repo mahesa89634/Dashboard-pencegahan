@@ -27,3 +27,105 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(148, 163, 184, 0.6);
 }
+
+/* ==========================================================================
+   CSS KHUSUS CETAK LAPORAN SKP (@media print)
+   Menyembunyikan elemen UI sistem dan memformat dokumen dinas resmi
+   ========================================================================== */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm 10mm 14mm 10mm;
+  }
+
+  /* Reset layout, background, dan teks untuk cetak kertas/PDF */
+  html, body {
+    background: #ffffff !important;
+    color: #020617 !important;
+    font-size: 10pt !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Sembunyikan navigasi sidebar, header bar, tombol aksi, input, modal, dan elemen non-cetak */
+  header,
+  aside,
+  nav,
+  button,
+  input,
+  select,
+  .print\:hidden,
+  #toast-container {
+    display: none !important;
+  }
+
+  /* Tampilkan elemen cetak resmi (Kop Surat & Titimangsa Tanda Tangan) */
+  .print\:block {
+    display: block !important;
+  }
+
+  .print\:flex {
+    display: flex !important;
+  }
+
+  .print\:grid {
+    display: grid !important;
+  }
+
+  /* Ratakan kontainer utama ke lebar penuh halaman kertas */
+  main,
+  .max-w-7xl,
+  .lg\:pl-72 {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    padding-left: 0 !important;
+  }
+
+  /* Hilangkan bayangan kartu agar bersih dan menghemat tinta */
+  .shadow-2xs,
+  .shadow-xs,
+  .shadow-sm,
+  .shadow-md,
+  .shadow-lg,
+  .shadow-xl {
+    box-shadow: none !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  /* Format tabel laporan kedinasan */
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    font-size: 9pt !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    color: #0f172a !important;
+    border: 1px solid #94a3b8 !important;
+    font-weight: 800 !important;
+    text-transform: uppercase !important;
+    font-size: 8.5pt !important;
+  }
+
+  td {
+    border: 1px solid #cbd5e1 !important;
+    color: #1e293b !important;
+    padding: 5px 6px !important;
+  }
+
+  tr {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+
+  /* Hindari pemotongan blok tanda tangan dan kartu di tengah halaman */
+  .break-inside-avoid {
+    break-inside: avoid !important;
+    page-break-inside: avoid !important;
+  }
+}

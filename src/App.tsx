@@ -217,6 +217,16 @@ export default function App() {
   const [selectedInspeksi, setSelectedInspeksi] = useState<InspeksiItem | null>(null);
   const [selectedSocialization, setSelectedSocialization] = useState<SocializationRecap | null>(null);
 
+  // Periode Filter SKP Khusus Admin (Bulan & Tahun)
+  const currentMonthNum = String(new Date().getMonth() + 1);
+  const currentYearStr = String(new Date().getFullYear());
+  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthNum);
+  const [selectedYear, setSelectedYear] = useState<string>(currentYearStr);
+
+  const handlePrintPdf = () => {
+    window.print();
+  };
+
   // Form Modal States
   const [showInspeksiModal, setShowInspeksiModal] = useState<boolean>(false);
   const [editingInspeksi, setEditingInspeksi] = useState<InspeksiItem | null>(null);
@@ -680,6 +690,11 @@ export default function App() {
                 exportToExcel(volunteers, 'Data_Relawan_REDKAR_Bima', headers, keys);
               }}
               isAdmin={isAdmin}
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+              onPrintPdf={handlePrintPdf}
             />
           )}
 
@@ -719,6 +734,11 @@ export default function App() {
               isLeadershipUnlocked={isLeadershipUnlocked}
               onOpenPinModal={() => setShowLeadershipPinModal(true)}
               onLockLeadership={handleLockLeadership}
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+              onPrintPdf={handlePrintPdf}
             />
           )}
 
@@ -757,6 +777,11 @@ export default function App() {
                 exportToExcel(socializations, 'Data_Sosialisasi_Damkar_Bima', headers, keys);
               }}
               isAdmin={isAdmin}
+              selectedMonth={selectedMonth}
+              onMonthChange={setSelectedMonth}
+              selectedYear={selectedYear}
+              onYearChange={setSelectedYear}
+              onPrintPdf={handlePrintPdf}
             />
           )}
 

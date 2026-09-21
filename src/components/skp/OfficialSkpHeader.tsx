@@ -31,43 +31,22 @@ export default function OfficialSkpHeader({
 
   return (
     <div className="hidden print:block mb-6 text-slate-950 font-serif border-b-2 border-slate-900 pb-3">
-      {/* 1. KOP SURAT RESMI PEMERINTAH KOTA BIMA */}
-      <div className="flex items-center justify-between gap-4 pb-2">
-        {/* Lambang Garuda / Pemkot Bima Emblem */}
-        <div className="w-20 h-20 shrink-0 flex flex-col items-center justify-center border-2 border-slate-900 rounded-lg p-1 bg-white">
-          <svg className="w-12 h-12 text-slate-900" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7">
-            <path d="M12 2L3 7v6c0 5.5 3.8 10.7 9 12 5.2-1.3 9-6.5 9-12V7l-9-5z" fill="#f8fafc" />
-            <path d="M12 7c-2 0-3.5 1.5-3.5 3.5 0 2.5 3.5 5.5 3.5 5.5s3.5-3 3.5-5.5C15.5 8.5 14 7 12 7z" fill="#b91c1c" />
-          </svg>
-          <span className="text-[7.5px] font-mono font-black uppercase text-slate-900 tracking-tighter">KOTA BIMA</span>
-        </div>
-
-        {/* Teks Identitas Kedinasan */}
-        <div className="flex-1 text-center space-y-0.5">
-          <h3 className="text-sm font-bold tracking-widest text-slate-900 uppercase">
-            PEMERINTAH KOTA BIMA
-          </h3>
-          <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-950 uppercase leading-tight">
-            DINAS PEMADAM KEBAKARAN DAN PENYELAMATAN
-          </h1>
-          <h2 className="text-xs sm:text-sm font-bold tracking-normal text-slate-900 uppercase">
-            BIDANG PENCEGAHAN
-          </h2>
-          <p className="text-[9.5px] text-slate-700 tracking-tight font-sans leading-tight">
-            Jl. Soekarno-Hatta No. 01, Paruga, Rasanae Barat, Kota Bima, Nusa Tenggara Barat 84111
-            <br />
-            Laman Resmi: damkar.bimakota.go.id | Pos-el: damkarmat@bimakota.go.id | Call Center: 114
-          </p>
-        </div>
-
-        {/* Lambang Korps Damkarmat */}
-        <div className="w-20 h-20 shrink-0 flex flex-col items-center justify-center border-2 border-slate-900 rounded-lg p-1 bg-white">
-          <span className="text-red-700 font-black text-xs leading-none font-sans">DAMKAR</span>
-          <span className="text-[7.5px] font-black text-slate-800 uppercase font-sans mt-0.5">YUDHA BRAMA</span>
-          <span className="text-[7px] font-bold text-slate-600 font-sans">JAYA</span>
-          <div className="w-6 h-0.5 bg-red-600 my-0.5" />
-          <span className="text-[6.5px] font-mono text-slate-700">KOTA BIMA</span>
-        </div>
+      {/* 1. KOP SURAT RESMI PEMERINTAH KOTA BIMA (TEXT ONLY - FULL CENTER) */}
+      <div className="w-full text-center space-y-0.5 pb-2">
+        <h3 className="text-sm font-bold tracking-widest text-slate-900 uppercase">
+          PEMERINTAH KOTA BIMA
+        </h3>
+        <h1 className="text-base sm:text-lg font-black tracking-tight text-slate-950 uppercase leading-tight">
+          DINAS PEMADAM KEBAKARAN DAN PENYELAMATAN
+        </h1>
+        <h2 className="text-xs sm:text-sm font-bold tracking-normal text-slate-900 uppercase">
+          BIDANG PENCEGAHAN
+        </h2>
+        <p className="text-[9.5px] text-slate-700 tracking-tight font-sans leading-tight pt-0.5">
+          Jl. Soekarno-Hatta No. 01, Paruga, Rasanae Barat, Kota Bima, Nusa Tenggara Barat 84111
+          <br />
+          Laman Resmi: damkar.bimakota.go.id | Pos-el: damkarmat@bimakota.go.id | Call Center: 114
+        </p>
       </div>
 
       {/* Garis Ganda Pembatas Kop Surat Resmi */}

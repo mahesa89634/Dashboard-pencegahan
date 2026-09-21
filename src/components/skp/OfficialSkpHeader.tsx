@@ -42,11 +42,10 @@ export default function OfficialSkpHeader({
         <h2 className="text-xs sm:text-sm font-bold tracking-normal text-slate-900 uppercase">
           BIDANG PENCEGAHAN
         </h2>
-        <p className="text-[9.5px] text-slate-700 tracking-tight font-sans leading-tight pt-0.5">
-          Jl. Soekarno-Hatta No. 01, Paruga, Rasanae Barat, Kota Bima, Nusa Tenggara Barat 84111
-          <br />
-          Laman Resmi: damkar.bimakota.go.id | Pos-el: damkarmat@bimakota.go.id | Call Center: 114
-        </p>
+        <div className="text-[10.5px] text-slate-800 tracking-normal font-sans leading-tight pt-1">
+          <p>Alamat: Kompleks Perkantoran Walikota Bima Jl. Soekarno-Hatta No. Kota Bima</p>
+          <p className="pt-0.5">Website: www.bimakota.go.id, email: damkarkobi1@gmail.com</p>
+        </div>
       </div>
 
       {/* Garis Ganda Pembatas Kop Surat Resmi */}

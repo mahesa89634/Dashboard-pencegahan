@@ -96,6 +96,22 @@
     "/nspmDocs/{id}": {
       "schema": "NspmDocument",
       "description": "Koleksi dokumen NSPM regulasi pencegahan kebakaran"
+    },
+    "/pemberdayaan/{id}": {
+      "schema": "SocializationRecap",
+      "description": "Alias koleksi kegiatan pemberdayaan masyarakat"
+    },
+    "/redkar/{id}": {
+      "schema": "RedkarVolunteer",
+      "description": "Alias koleksi relawan kebakaran REDKAR"
+    },
+    "/pembinaan/{id}": {
+      "schema": "AparaturMaterial",
+      "description": "Alias koleksi pembinaan aparatur kebakaran"
+    },
+    "/nspm/{id}": {
+      "schema": "NspmDocument",
+      "description": "Alias koleksi regulasi protap NSPM"
     }
   }
 }

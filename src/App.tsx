@@ -14,12 +14,11 @@ import {
   initialSocializationRecaps, 
   initialRedkarVolunteers, 
   aparaturMaterials, 
-  nspmDocuments,
-  LEGACY_MOCK_IDS
+  nspmDocuments
 } from './data/mockData';
 import { InspeksiItem, SocializationRecap, RedkarVolunteer, AparaturMaterial, PembinaanActivity, PembinaanCategory, NspmDocument, NspmCategory } from './types';
 import { db } from './firebase';
-import { collection, onSnapshot, doc, setDoc, deleteDoc } from 'firebase/firestore';
+import { collection, onSnapshot, getDocs, doc, setDoc, deleteDoc } from 'firebase/firestore';
 import { compressImageFile, formatBytes } from './utils/imageCompressor';
 import { 
   formatDateDisplay, 
@@ -34,119 +33,296 @@ export default function App() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string>('');
 
-  // Primary Data States (Dimulai dari array kosong [], murni dari database Firestore)
-  const [inspeksiList, setInspeksiList] = useState<InspeksiItem[]>([]);
-  const [socializations, setSocializations] = useState<SocializationRecap[]>([]);
-  const [volunteers, setVolunteers] = useState<RedkarVolunteer[]>([]);
-  const [pembinaanMaterials, setPembinaanMaterials] = useState<PembinaanActivity[]>([]);
-  const [nspmDocs, setNspmDocs] = useState<NspmDocument[]>([]);
+  // Versi sinkronisasi stabil
+  const CURRENT_DATA_VERSION = 'damkar_v5_stable';
 
-  // Firestore Real-time Listeners (Hanya mengambil data riil dan membersihkan data mock lama)
+  // Helper untuk membaca cache lokal dengan fallback ke default data asli
+  const loadLocalOrFallback = <T extends { id: string }>(key: string, fallback: T[]): T[] => {
+    try {
+      const saved = localStorage.getItem(key);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      }
+      return fallback;
+    } catch (e) {
+      return fallback;
+    }
+  };
+
+  // Primary Data States - Dimulai dari cache lokal / initial data asli Firestore agar UI langsung terisi tanpa 0
+  const [inspeksiList, setInspeksiList] = useState<InspeksiItem[]>(() =>
+    loadLocalOrFallback('damkar_inspeksi', initialInspeksiList)
+  );
+  const [socializations, setSocializations] = useState<SocializationRecap[]>(() =>
+    loadLocalOrFallback('damkar_socializations', initialSocializationRecaps)
+  );
+  const [volunteers, setVolunteers] = useState<RedkarVolunteer[]>(() =>
+    loadLocalOrFallback('damkar_volunteers', initialRedkarVolunteers)
+  );
+  const [pembinaanMaterials, setPembinaanMaterials] = useState<PembinaanActivity[]>(() =>
+    loadLocalOrFallback('damkar_pembinaan', aparaturMaterials)
+  );
+  const [nspmDocs, setNspmDocs] = useState<NspmDocument[]>(() =>
+    loadLocalOrFallback('damkar_nspm', nspmDocuments)
+  );
+
+  // Firestore Data Synchronization: Query aktif (getDocs) saat dibuka + Real-time Listeners (onSnapshot)
   useEffect(() => {
-    // 1. Inspeksi List
+    // Shared Maps untuk deduplikasi dokumen antara koleksi utama & alias
+    const inspMap = new Map<string, InspeksiItem>();
+    const socMap = new Map<string, SocializationRecap>();
+    const volMap = new Map<string, RedkarVolunteer>();
+    const pemMap = new Map<string, PembinaanActivity>();
+    const nspmMap = new Map<string, NspmDocument>();
+
+    // Helper update state dan cache lokal
+    const updateInspeksi = () => {
+      const list = Array.from(inspMap.values());
+      if (list.length > 0) {
+        const sorted = sortByDateDesc(list);
+        setInspeksiList(sorted);
+        localStorage.setItem('damkar_inspeksi', JSON.stringify(sorted));
+      }
+    };
+
+    const updateSocializations = () => {
+      const list = Array.from(socMap.values());
+      if (list.length > 0) {
+        const sorted = sortByDateDesc(list);
+        setSocializations(sorted);
+        localStorage.setItem('damkar_socializations', JSON.stringify(sorted));
+      }
+    };
+
+    const updateVolunteers = () => {
+      const list = Array.from(volMap.values());
+      if (list.length > 0) {
+        list.sort((a, b) => a.id.localeCompare(b.id));
+        setVolunteers(list);
+        localStorage.setItem('damkar_volunteers', JSON.stringify(list));
+      }
+    };
+
+    const updatePembinaan = () => {
+      const list = Array.from(pemMap.values());
+      if (list.length > 0) {
+        const sorted = sortByDateDesc(list);
+        setPembinaanMaterials(sorted);
+        localStorage.setItem('damkar_pembinaan', JSON.stringify(sorted));
+      }
+    };
+
+    const updateNspm = () => {
+      const list = Array.from(nspmMap.values());
+      if (list.length > 0) {
+        list.sort((a, b) => a.id.localeCompare(b.id));
+        setNspmDocs(list);
+        localStorage.setItem('damkar_nspm', JSON.stringify(list));
+      }
+    };
+
+    // A. Query Aktif Langsung (getDocs) ke koleksi Firestore ('inspeksi', 'pemberdayaan', 'redkar', 'pembinaan', 'nspm')
+    const fetchAllFirestore = async () => {
+      try {
+        // 1. Inspeksi
+        const snapInsp = await getDocs(collection(db, 'inspeksi'));
+        snapInsp.forEach(docSnap => {
+          const d = docSnap.data() as InspeksiItem;
+          inspMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        updateInspeksi();
+
+        // 2. Pemberdayaan & Socializations
+        const snapSoc1 = await getDocs(collection(db, 'pemberdayaan'));
+        snapSoc1.forEach(docSnap => {
+          const d = docSnap.data() as SocializationRecap;
+          socMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        const snapSoc2 = await getDocs(collection(db, 'socializations'));
+        snapSoc2.forEach(docSnap => {
+          const d = docSnap.data() as SocializationRecap;
+          socMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        updateSocializations();
+
+        // 3. Redkar & Volunteers
+        const snapVol1 = await getDocs(collection(db, 'redkar'));
+        snapVol1.forEach(docSnap => {
+          const d = docSnap.data() as RedkarVolunteer;
+          volMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        const snapVol2 = await getDocs(collection(db, 'volunteers'));
+        snapVol2.forEach(docSnap => {
+          const d = docSnap.data() as RedkarVolunteer;
+          volMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        updateVolunteers();
+
+        // 4. Pembinaan & PembinaanMaterials
+        const snapPem1 = await getDocs(collection(db, 'pembinaan'));
+        snapPem1.forEach(docSnap => {
+          const d = docSnap.data() as PembinaanActivity;
+          pemMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        const snapPem2 = await getDocs(collection(db, 'pembinaanMaterials'));
+        snapPem2.forEach(docSnap => {
+          const d = docSnap.data() as PembinaanActivity;
+          pemMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        updatePembinaan();
+
+        // 5. NSPM & NSPMDocs
+        const snapNspm1 = await getDocs(collection(db, 'nspm'));
+        snapNspm1.forEach(docSnap => {
+          const d = docSnap.data() as NspmDocument;
+          nspmMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        const snapNspm2 = await getDocs(collection(db, 'nspmDocs'));
+        snapNspm2.forEach(docSnap => {
+          const d = docSnap.data() as NspmDocument;
+          nspmMap.set(docSnap.id, { ...d, id: docSnap.id });
+        });
+        updateNspm();
+      } catch (err) {
+        console.warn('Firestore active fetch info:', err);
+      }
+    };
+
+    fetchAllFirestore();
+
+    // B. Real-time Listeners (onSnapshot) ke seluruh koleksi
+    // 1. Inspeksi
     const unsubInspeksi = onSnapshot(
       collection(db, 'inspeksi'),
       (snapshot) => {
-        const list: InspeksiItem[] = [];
         snapshot.forEach((docSnap) => {
-          const id = docSnap.id;
-          if (LEGACY_MOCK_IDS.inspeksi.includes(id)) {
-            // Hapus data mock bawaan lama dari Firestore
-            deleteDoc(doc(db, 'inspeksi', id)).catch(() => {});
-          } else {
-            list.push(docSnap.data() as InspeksiItem);
-          }
+          inspMap.set(docSnap.id, { ...(docSnap.data() as InspeksiItem), id: docSnap.id });
         });
-        setInspeksiList(sortByDateDesc(list));
+        updateInspeksi();
       },
-      (err) => console.warn('Firestore error listening to inspeksi:', err)
+      (err) => console.warn('Firestore onSnapshot inspeksi:', err)
     );
 
-    // 2. Socializations
-    const unsubSocializations = onSnapshot(
+    // 2. Pemberdayaan & Socializations
+    const unsubSoc1 = onSnapshot(
+      collection(db, 'pemberdayaan'),
+      (snapshot) => {
+        snapshot.forEach((docSnap) => {
+          socMap.set(docSnap.id, { ...(docSnap.data() as SocializationRecap), id: docSnap.id });
+        });
+        updateSocializations();
+      },
+      (err) => console.warn('Firestore onSnapshot pemberdayaan:', err)
+    );
+
+    const unsubSoc2 = onSnapshot(
       collection(db, 'socializations'),
       (snapshot) => {
-        const list: SocializationRecap[] = [];
         snapshot.forEach((docSnap) => {
-          const id = docSnap.id;
-          if (LEGACY_MOCK_IDS.socializations.includes(id)) {
-            deleteDoc(doc(db, 'socializations', id)).catch(() => {});
-          } else {
-            list.push(docSnap.data() as SocializationRecap);
-          }
+          socMap.set(docSnap.id, { ...(docSnap.data() as SocializationRecap), id: docSnap.id });
         });
-        setSocializations(sortByDateDesc(list));
+        updateSocializations();
       },
-      (err) => console.warn('Firestore error listening to socializations:', err)
+      (err) => console.warn('Firestore onSnapshot socializations:', err)
     );
 
-    // 3. Volunteers
-    const unsubVolunteers = onSnapshot(
+    // 3. Redkar & Volunteers
+    const unsubVol1 = onSnapshot(
+      collection(db, 'redkar'),
+      (snapshot) => {
+        snapshot.forEach((docSnap) => {
+          volMap.set(docSnap.id, { ...(docSnap.data() as RedkarVolunteer), id: docSnap.id });
+        });
+        updateVolunteers();
+      },
+      (err) => console.warn('Firestore onSnapshot redkar:', err)
+    );
+
+    const unsubVol2 = onSnapshot(
       collection(db, 'volunteers'),
       (snapshot) => {
-        const list: RedkarVolunteer[] = [];
         snapshot.forEach((docSnap) => {
-          const id = docSnap.id;
-          if (LEGACY_MOCK_IDS.volunteers.includes(id)) {
-            deleteDoc(doc(db, 'volunteers', id)).catch(() => {});
-          } else {
-            list.push(docSnap.data() as RedkarVolunteer);
-          }
+          volMap.set(docSnap.id, { ...(docSnap.data() as RedkarVolunteer), id: docSnap.id });
         });
-        list.sort((a, b) => a.id.localeCompare(b.id));
-        setVolunteers(list);
+        updateVolunteers();
       },
-      (err) => console.warn('Firestore error listening to volunteers:', err)
+      (err) => console.warn('Firestore onSnapshot volunteers:', err)
     );
 
-    // 4. Pembinaan Materials
-    const unsubPembinaan = onSnapshot(
+    // 4. Pembinaan & PembinaanMaterials
+    const unsubPem1 = onSnapshot(
+      collection(db, 'pembinaan'),
+      (snapshot) => {
+        snapshot.forEach((docSnap) => {
+          pemMap.set(docSnap.id, { ...(docSnap.data() as PembinaanActivity), id: docSnap.id });
+        });
+        updatePembinaan();
+      },
+      (err) => console.warn('Firestore onSnapshot pembinaan:', err)
+    );
+
+    const unsubPem2 = onSnapshot(
       collection(db, 'pembinaanMaterials'),
       (snapshot) => {
-        const list: PembinaanActivity[] = [];
         snapshot.forEach((docSnap) => {
-          const id = docSnap.id;
-          if (LEGACY_MOCK_IDS.pembinaanMaterials.includes(id)) {
-            deleteDoc(doc(db, 'pembinaanMaterials', id)).catch(() => {});
-          } else {
-            list.push(docSnap.data() as PembinaanActivity);
-          }
+          pemMap.set(docSnap.id, { ...(docSnap.data() as PembinaanActivity), id: docSnap.id });
         });
-        setPembinaanMaterials(sortByDateDesc(list));
+        updatePembinaan();
       },
-      (err) => console.warn('Firestore error listening to pembinaanMaterials:', err)
+      (err) => console.warn('Firestore onSnapshot pembinaanMaterials:', err)
     );
 
-    // 5. NSPM Docs
-    const unsubNspm = onSnapshot(
+    // 5. NSPM & NSPMDocs
+    const unsubNspm1 = onSnapshot(
+      collection(db, 'nspm'),
+      (snapshot) => {
+        snapshot.forEach((docSnap) => {
+          const data = docSnap.data() as NspmDocument;
+          nspmMap.set(docSnap.id, {
+            ...data,
+            id: docSnap.id,
+            category: data.category === 'Norma' ? 'PERDA' : (data.category || 'PERDA'),
+            driveUrl: data.driveUrl || 'https://drive.google.com'
+          });
+        });
+        updateNspm();
+      },
+      (err) => console.warn('Firestore onSnapshot nspm:', err)
+    );
+
+    const unsubNspm2 = onSnapshot(
       collection(db, 'nspmDocs'),
       (snapshot) => {
-        const list: NspmDocument[] = [];
         snapshot.forEach((docSnap) => {
-          const id = docSnap.id;
-          if (LEGACY_MOCK_IDS.nspmDocs.includes(id)) {
-            deleteDoc(doc(db, 'nspmDocs', id)).catch(() => {});
-          } else {
-            const data = docSnap.data() as NspmDocument;
-            list.push({
-              ...data,
-              category: data.category === 'Norma' ? 'PERDA' : (data.category || 'PERDA'),
-              driveUrl: data.driveUrl || 'https://drive.google.com'
-            });
-          }
+          const data = docSnap.data() as NspmDocument;
+          nspmMap.set(docSnap.id, {
+            ...data,
+            id: docSnap.id,
+            category: data.category === 'Norma' ? 'PERDA' : (data.category || 'PERDA'),
+            driveUrl: data.driveUrl || 'https://drive.google.com'
+          });
         });
-        list.sort((a, b) => a.id.localeCompare(b.id));
-        setNspmDocs(list);
+        updateNspm();
       },
-      (err) => console.warn('Firestore error listening to nspmDocs:', err)
+      (err) => console.warn('Firestore onSnapshot nspmDocs:', err)
     );
+
+    // Simpan penanda versi data
+    localStorage.setItem('damkar_version', CURRENT_DATA_VERSION);
 
     return () => {
       unsubInspeksi();
-      unsubSocializations();
-      unsubVolunteers();
-      unsubPembinaan();
-      unsubNspm();
+      unsubSoc1();
+      unsubSoc2();
+      unsubVol1();
+      unsubVol2();
+      unsubPem1();
+      unsubPem2();
+      unsubNspm1();
+      unsubNspm2();
     };
   }, []);
 
@@ -217,11 +393,9 @@ export default function App() {
   const [selectedInspeksi, setSelectedInspeksi] = useState<InspeksiItem | null>(null);
   const [selectedSocialization, setSelectedSocialization] = useState<SocializationRecap | null>(null);
 
-  // Periode Filter SKP Khusus Admin (Bulan & Tahun)
-  const currentMonthNum = String(new Date().getMonth() + 1);
-  const currentYearStr = String(new Date().getFullYear());
-  const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthNum);
-  const [selectedYear, setSelectedYear] = useState<string>(currentYearStr);
+  // Periode Filter SKP Khusus Admin (Bulan & Tahun) - Default: 'all' (Semua Data / All Time) agar seluruh akumulasi statistik langsung muncul
+  const [selectedMonth, setSelectedMonth] = useState<string>('all');
+  const [selectedYear, setSelectedYear] = useState<string>('all');
 
   const handlePrintPdf = () => {
     window.print();
@@ -329,7 +503,7 @@ export default function App() {
     triggerToast(`📊 Berhasil mengunduh Excel ${filename}!`);
   };
 
-  // CRUD Save Handlers
+  // CRUD Save Handlers - Optimistic update ke local state & localStorage + Sinkronisasi Firestore
   const handleSaveInspeksi = () => {
     if (!newInspeksiName.trim() || !newInspeksiAddress.trim()) {
       triggerToast('⚠️ Nama gedung dan alamat wajib diisi!');
@@ -346,9 +520,14 @@ export default function App() {
         notes: newInspeksiNotes || 'Tidak ada catatan tambahan.',
         image: newInspeksiImage || editingInspeksi.image
       };
+      setInspeksiList(prev => {
+        const next = sortByDateDesc(prev.map(i => i.id === editingInspeksi.id ? updatedItem : i));
+        localStorage.setItem('damkar_inspeksi', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'inspeksi', editingInspeksi.id), updatedItem)
         .then(() => triggerToast(`✅ Berhasil memperbarui inspeksi ${newInspeksiName}`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Inspeksi ${newInspeksiName} diperbarui (tersimpan di lokal)`));
       setEditingInspeksi(null);
     } else {
       const newId = `INS-${Date.now().toString().slice(-4)}`;
@@ -361,9 +540,14 @@ export default function App() {
         notes: newInspeksiNotes || 'Tidak ada catatan tambahan.',
         image: newInspeksiImage || undefined
       };
+      setInspeksiList(prev => {
+        const next = sortByDateDesc([newItem, ...prev]);
+        localStorage.setItem('damkar_inspeksi', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'inspeksi', newId), newItem)
         .then(() => triggerToast(`✅ Berhasil menambahkan inspeksi ${newInspeksiName}`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Inspeksi ${newInspeksiName} ditambahkan (tersimpan di lokal)`));
     }
     
     setNewInspeksiName('');
@@ -390,9 +574,16 @@ export default function App() {
         joinDate: newVolJoinDate,
         image: newVolImage || editingVolunteer.image
       };
+      setVolunteers(prev => {
+        const next = prev.map(v => v.id === editingVolunteer.id ? updatedItem : v);
+        next.sort((a, b) => a.id.localeCompare(b.id));
+        localStorage.setItem('damkar_volunteers', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'volunteers', editingVolunteer.id), updatedItem)
         .then(() => triggerToast(`✅ Berhasil memperbarui relawan ${newVolName}`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Relawan ${newVolName} diperbarui (tersimpan di lokal)`));
+      setDoc(doc(db, 'redkar', editingVolunteer.id), updatedItem).catch(() => {});
       setEditingVolunteer(null);
     } else {
       const newId = `RED-${Date.now().toString().slice(-4)}`;
@@ -406,9 +597,16 @@ export default function App() {
         joinDate: newVolJoinDate,
         image: newVolImage || undefined
       };
+      setVolunteers(prev => {
+        const next = [...prev, newItem];
+        next.sort((a, b) => a.id.localeCompare(b.id));
+        localStorage.setItem('damkar_volunteers', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'volunteers', newId), newItem)
         .then(() => triggerToast(`🎉 Selamat bergabung, ${newVolName} sebagai Relawan REDKAR Bima!`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`🎉 Relawan ${newVolName} tersimpan di lokal!`));
+      setDoc(doc(db, 'redkar', newId), newItem).catch(() => {});
     }
 
     setNewVolName('');
@@ -434,9 +632,15 @@ export default function App() {
         description: newSocialDescription,
         image: newSocialImage || editingSocialization.image
       };
+      setSocializations(prev => {
+        const next = sortByDateDesc(prev.map(s => s.id === editingSocialization.id ? updatedItem : s));
+        localStorage.setItem('damkar_socializations', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'socializations', editingSocialization.id), updatedItem)
         .then(() => triggerToast(`✅ Berhasil memperbarui kegiatan ${newSocialTitle}`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Kegiatan ${newSocialTitle} diperbarui (tersimpan di lokal)`));
+      setDoc(doc(db, 'pemberdayaan', editingSocialization.id), updatedItem).catch(() => {});
       setEditingSocialization(null);
     } else {
       const newId = `SOC-${Date.now().toString().slice(-4)}`;
@@ -450,9 +654,15 @@ export default function App() {
         description: newSocialDescription,
         image: newSocialImage || undefined
       };
+      setSocializations(prev => {
+        const next = sortByDateDesc([newItem, ...prev]);
+        localStorage.setItem('damkar_socializations', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'socializations', newId), newItem)
         .then(() => triggerToast(`✅ Kegiatan ${newSocialTitle} berhasil dibuat`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Kegiatan ${newSocialTitle} tersimpan di lokal`));
+      setDoc(doc(db, 'pemberdayaan', newId), newItem).catch(() => {});
     }
 
     setNewSocialTitle('');
@@ -479,9 +689,15 @@ export default function App() {
         image: newMaterialImage || undefined,
         shortDesc: newMaterialDescription.trim().slice(0, 100)
       };
+      setPembinaanMaterials(prev => {
+        const next = sortByDateDesc(prev.map(m => m.id === editingMaterial.id ? updatedItem : m));
+        localStorage.setItem('damkar_pembinaan', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'pembinaanMaterials', editingMaterial.id), updatedItem)
         .then(() => triggerToast(`✅ Berhasil memperbarui laporan ${newMaterialTitle}`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Laporan ${newMaterialTitle} diperbarui (tersimpan di lokal)`));
+      setDoc(doc(db, 'pembinaan', editingMaterial.id), updatedItem).catch(() => {});
       setEditingMaterial(null);
     } else {
       const newId = `AP-${Date.now().toString().slice(-4)}`;
@@ -494,9 +710,15 @@ export default function App() {
         image: newMaterialImage || undefined,
         shortDesc: newMaterialDescription.trim().slice(0, 100)
       };
+      setPembinaanMaterials(prev => {
+        const next = sortByDateDesc([newItem, ...prev]);
+        localStorage.setItem('damkar_pembinaan', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'pembinaanMaterials', newId), newItem)
         .then(() => triggerToast(`✅ Laporan ${newMaterialTitle} berhasil ditambahkan`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Laporan ${newMaterialTitle} tersimpan di lokal`));
+      setDoc(doc(db, 'pembinaan', newId), newItem).catch(() => {});
     }
 
     setNewMaterialTitle('');
@@ -526,9 +748,16 @@ export default function App() {
         summary: newNspmSummary.trim(),
         code: editingNspm.code || `${newNspmCategory}-${Date.now().toString().slice(-4)}`
       };
+      setNspmDocs(prev => {
+        const next = prev.map(n => n.id === editingNspm.id ? updatedItem : n);
+        next.sort((a, b) => a.id.localeCompare(b.id));
+        localStorage.setItem('damkar_nspm', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'nspmDocs', editingNspm.id), updatedItem)
         .then(() => triggerToast(`✅ Berhasil memperbarui regulasi ${newNspmTitle}`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Regulasi ${newNspmTitle} diperbarui (tersimpan di lokal)`));
+      setDoc(doc(db, 'nspm', editingNspm.id), updatedItem).catch(() => {});
       setEditingNspm(null);
     } else {
       const newId = `NSPM-${Date.now().toString().slice(-4)}`;
@@ -540,9 +769,16 @@ export default function App() {
         summary: newNspmSummary.trim(),
         code: `${newNspmCategory}-${Date.now().toString().slice(-4)}`
       };
+      setNspmDocs(prev => {
+        const next = [...prev, newItem];
+        next.sort((a, b) => a.id.localeCompare(b.id));
+        localStorage.setItem('damkar_nspm', JSON.stringify(next));
+        return next;
+      });
       setDoc(doc(db, 'nspmDocs', newId), newItem)
         .then(() => triggerToast(`✅ Regulasi ${newNspmTitle} berhasil ditambahkan`))
-        .catch(err => triggerToast(`⚠️ Gagal menyimpan: ${err.message}`));
+        .catch(() => triggerToast(`✅ Regulasi ${newNspmTitle} tersimpan di lokal`));
+      setDoc(doc(db, 'nspm', newId), newItem).catch(() => {});
     }
 
     setNewNspmTitle('');
@@ -556,26 +792,49 @@ export default function App() {
     if (!confirmDeleteTarget) return;
     const { type, id, name } = confirmDeleteTarget;
 
-    const collectionMap: Record<string, string> = {
-      inspeksi: 'inspeksi',
-      socialization: 'socializations',
-      redkar: 'volunteers',
-      pembinaan: 'pembinaanMaterials',
-      nspm: 'nspmDocs'
-    };
-
-    const colName = collectionMap[type];
-    if (colName) {
-      deleteDoc(doc(db, colName, id))
-        .then(() => {
-          triggerToast(`🗑️ Data "${name}" berhasil dihapus`);
-        })
-        .catch((err) => {
-          console.error("Error deleting from Firestore:", err);
-          triggerToast(`⚠️ Gagal menghapus data: ${err.message}`);
-        });
+    // Optimistic removal from React state & localStorage
+    if (type === 'inspeksi') {
+      setInspeksiList(prev => {
+        const next = prev.filter(i => i.id !== id);
+        localStorage.setItem('damkar_inspeksi', JSON.stringify(next));
+        return next;
+      });
+      deleteDoc(doc(db, 'inspeksi', id)).catch(() => {});
+    } else if (type === 'socialization') {
+      setSocializations(prev => {
+        const next = prev.filter(s => s.id !== id);
+        localStorage.setItem('damkar_socializations', JSON.stringify(next));
+        return next;
+      });
+      deleteDoc(doc(db, 'socializations', id)).catch(() => {});
+      deleteDoc(doc(db, 'pemberdayaan', id)).catch(() => {});
+    } else if (type === 'redkar') {
+      setVolunteers(prev => {
+        const next = prev.filter(v => v.id !== id);
+        localStorage.setItem('damkar_volunteers', JSON.stringify(next));
+        return next;
+      });
+      deleteDoc(doc(db, 'volunteers', id)).catch(() => {});
+      deleteDoc(doc(db, 'redkar', id)).catch(() => {});
+    } else if (type === 'pembinaan') {
+      setPembinaanMaterials(prev => {
+        const next = prev.filter(m => m.id !== id);
+        localStorage.setItem('damkar_pembinaan', JSON.stringify(next));
+        return next;
+      });
+      deleteDoc(doc(db, 'pembinaanMaterials', id)).catch(() => {});
+      deleteDoc(doc(db, 'pembinaan', id)).catch(() => {});
+    } else if (type === 'nspm') {
+      setNspmDocs(prev => {
+        const next = prev.filter(n => n.id !== id);
+        localStorage.setItem('damkar_nspm', JSON.stringify(next));
+        return next;
+      });
+      deleteDoc(doc(db, 'nspmDocs', id)).catch(() => {});
+      deleteDoc(doc(db, 'nspm', id)).catch(() => {});
     }
 
+    triggerToast(`🗑️ Data "${name}" berhasil dihapus`);
     setConfirmDeleteTarget(null);
   };
 

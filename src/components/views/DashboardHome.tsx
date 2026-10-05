@@ -86,7 +86,7 @@ export default function DashboardHome({
   const needFixCount = filteredInspeksi.filter(i => i.status === 'Perlu Perbaikan').length;
   const safeCount = filteredInspeksi.filter(i => i.status === 'Aman').length;
   const totalParticipants = filteredSocializations.reduce((acc, curr) => acc + (Number(curr.participants) || 0), 0);
-  const activeVolunteers = volunteers.filter(v => v.status === 'Aktif').length;
+  const activeVolunteers = volunteers.filter(v => v.status === 'Aktif' || v.status === 'Siaga').length;
 
   // Kelurahan distribution count
   const kelurahanMap = new Map<string, number>();
@@ -224,7 +224,7 @@ export default function DashboardHome({
             </h3>
           </div>
           <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span className="text-emerald-600 font-semibold">{activeVolunteers} Personil Aktif</span>
+            <span className="text-emerald-600 font-semibold">{activeVolunteers} Personil Siaga / Aktif</span>
             <span className="text-slate-400 group-hover:text-slate-700 flex items-center gap-0.5 print:hidden">
               Detail <ChevronRight className="w-3 h-3" />
             </span>

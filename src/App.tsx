@@ -26,6 +26,12 @@ import {
   getTodayInputDate, 
   sortByDateDesc 
 } from './utils/dateUtils';
+import { 
+  exportInspeksiExcel, 
+  exportSocializationExcel, 
+  exportRedkarExcel, 
+  exportPembinaanExcel 
+} from './utils/excelExport';
 
 export default function App() {
   // Navigation & UI state
@@ -472,36 +478,7 @@ export default function App() {
     }
   };
 
-  // Excel/CSV Export Utility
-  const exportToExcel = (data: any[], filename: string, headers: string[], keys: string[]) => {
-    if (!data || data.length === 0) {
-      triggerToast('⚠️ Tidak ada data untuk diekspor.');
-      return;
-    }
-    const bom = '\uFEFF';
-    const csvContent = data.map(item => {
-      return keys.map(key => {
-        let val = item[key];
-        if (key === 'date' || key === 'joinDate') {
-          val = formatDateDisplay(val);
-        }
-        if (val === undefined || val === null) return '""';
-        const cleanVal = String(val).replace(/"/g, '""');
-        return `"${cleanVal}"`;
-      }).join(',');
-    }).join('\r\n');
-    
-    const fullCsv = bom + headers.map(h => `"${h}"`).join(',') + '\r\n' + csvContent;
-    const blob = new Blob([fullCsv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `${filename}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    triggerToast(`📊 Berhasil mengunduh Excel ${filename}!`);
-  };
+
 
   // CRUD Save Handlers - Optimistic update ke local state & localStorage + Sinkronisasi Firestore
   const handleSaveInspeksi = () => {
@@ -934,19 +911,28 @@ export default function App() {
               onSelectInspeksi={(item) => setSelectedInspeksi(item)}
               onSelectSocialization={(item) => setSelectedSocialization(item)}
               onExportInspeksi={() => {
-                const headers = ['ID Inspeksi', 'Nama Gedung', 'Tanggal Cek', 'Status', 'Alamat', 'Catatan'];
-                const keys = ['id', 'name', 'date', 'status', 'address', 'notes'];
-                exportToExcel(inspeksiList, 'Data_Inspeksi_Proteksi_Damkar_Bima', headers, keys);
+                try {
+                  exportInspeksiExcel(inspeksiList);
+                  triggerToast('📊 Berhasil mengunduh Excel Data Inspeksi (.xlsx)!');
+                } catch (err: any) {
+                  triggerToast(`⚠️ Gagal ekspor Excel: ${err.message}`);
+                }
               }}
               onExportSocialization={() => {
-                const headers = ['ID Kegiatan', 'Judul', 'Tanggal', 'Lokasi', 'Peserta', 'Pemateri', 'Deskripsi'];
-                const keys = ['id', 'title', 'date', 'location', 'participants', 'speaker', 'description'];
-                exportToExcel(socializations, 'Data_Sosialisasi_Damkar_Bima', headers, keys);
+                try {
+                  exportSocializationExcel(socializations);
+                  triggerToast('📊 Berhasil mengunduh Excel Data Sosialisasi (.xlsx)!');
+                } catch (err: any) {
+                  triggerToast(`⚠️ Gagal ekspor Excel: ${err.message}`);
+                }
               }}
               onExportRedkar={() => {
-                const headers = ['ID Relawan', 'Nama Lengkap', 'Kecamatan', 'Telepon', 'Peran', 'Status', 'Tanggal'];
-                const keys = ['id', 'name', 'subdistrict', 'phone', 'role', 'status', 'joinDate'];
-                exportToExcel(volunteers, 'Data_Relawan_REDKAR_Bima', headers, keys);
+                try {
+                  exportRedkarExcel(volunteers);
+                  triggerToast('📊 Berhasil mengunduh Excel Data Relawan REDKAR (.xlsx)!');
+                } catch (err: any) {
+                  triggerToast(`⚠️ Gagal ekspor Excel: ${err.message}`);
+                }
               }}
               isAdmin={isAdmin}
               selectedMonth={selectedMonth}
@@ -985,9 +971,12 @@ export default function App() {
               })}
               onSelectDetail={(item) => setSelectedInspeksi(item)}
               onExportExcel={() => {
-                const headers = ['ID Inspeksi', 'Nama Gedung', 'Tanggal Cek', 'Status', 'Alamat', 'Catatan'];
-                const keys = ['id', 'name', 'date', 'status', 'address', 'notes'];
-                exportToExcel(inspeksiList, 'Data_Inspeksi_Proteksi_Damkar_Bima', headers, keys);
+                try {
+                  exportInspeksiExcel(inspeksiList);
+                  triggerToast('📊 Berhasil mengunduh Excel Data Inspeksi Proteksi (.xlsx)!');
+                } catch (err: any) {
+                  triggerToast(`⚠️ Gagal ekspor Excel: ${err.message}`);
+                }
               }}
               isAdmin={isAdmin}
               isLeadershipUnlocked={isLeadershipUnlocked}
@@ -1031,9 +1020,12 @@ export default function App() {
               })}
               onSelectDetail={(item) => setSelectedSocialization(item)}
               onExportExcel={() => {
-                const headers = ['ID Kegiatan', 'Judul', 'Tanggal', 'Lokasi', 'Peserta', 'Pemateri', 'Deskripsi'];
-                const keys = ['id', 'title', 'date', 'location', 'participants', 'speaker', 'description'];
-                exportToExcel(socializations, 'Data_Sosialisasi_Damkar_Bima', headers, keys);
+                try {
+                  exportSocializationExcel(socializations);
+                  triggerToast('📊 Berhasil mengunduh Excel Data Sosialisasi & Edukasi (.xlsx)!');
+                } catch (err: any) {
+                  triggerToast(`⚠️ Gagal ekspor Excel: ${err.message}`);
+                }
               }}
               isAdmin={isAdmin}
               selectedMonth={selectedMonth}
@@ -1073,9 +1065,12 @@ export default function App() {
                 setConfirmDeleteTarget({ type: 'redkar', id, name });
               })}
               onExportExcel={() => {
-                const headers = ['ID Relawan', 'Nama Lengkap', 'Kelurahan Penugasan', 'Telepon', 'Peran', 'Status', 'Tanggal'];
-                const keys = ['id', 'name', 'subdistrict', 'phone', 'role', 'status', 'joinDate'];
-                exportToExcel(volunteers, 'Data_Relawan_REDKAR_Bima', headers, keys);
+                try {
+                  exportRedkarExcel(volunteers);
+                  triggerToast('📊 Berhasil mengunduh Excel Data Relawan REDKAR (.xlsx)!');
+                } catch (err: any) {
+                  triggerToast(`⚠️ Gagal ekspor Excel: ${err.message}`);
+                }
               }}
               isAdmin={isAdmin}
             />
@@ -1107,9 +1102,12 @@ export default function App() {
               })}
               onSelectMaterial={(item) => setSelectedPembinaan(item)}
               onExportExcel={() => {
-                const headers = ['ID Kegiatan', 'Judul Kegiatan', 'Kategori', 'Tanggal Pelaksanaan', 'Deskripsi Ringkasan'];
-                const keys = ['id', 'title', 'category', 'date', 'description'];
-                exportToExcel(pembinaanMaterials, 'Laporan_Pembinaan_Aparatur_Kota_Bima', headers, keys);
+                try {
+                  exportPembinaanExcel(pembinaanMaterials);
+                  triggerToast('📊 Berhasil mengunduh Excel Laporan Pembinaan (.xlsx)!');
+                } catch (err: any) {
+                  triggerToast(`⚠️ Gagal ekspor Excel: ${err.message}`);
+                }
               }}
               isAdmin={isAdmin}
             />

@@ -975,15 +975,21 @@ export default function Modals(props: ModalsProps) {
 
                 <div>
                   <span className="text-slate-500 font-bold block mb-1">Status Proteksi:</span>
-                  <div className={`p-2.5 rounded-xl border text-center font-black uppercase text-xs ${
-                    selectedInspeksi.status === 'Kritis' 
-                      ? 'bg-red-50 border-red-200 text-red-700' 
-                      : selectedInspeksi.status === 'Perlu Perbaikan' 
-                        ? 'bg-amber-50 border-amber-200 text-amber-800' 
-                        : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                  }`}>
-                    {selectedInspeksi.status}
-                  </div>
+                  {canViewNotes ? (
+                    <div className={`p-2.5 rounded-xl border text-center font-black uppercase text-xs ${
+                      selectedInspeksi.status === 'Kritis' 
+                        ? 'bg-red-50 border-red-200 text-red-700' 
+                        : selectedInspeksi.status === 'Perlu Perbaikan' 
+                          ? 'bg-amber-50 border-amber-200 text-amber-800' 
+                          : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                    }`}>
+                      {selectedInspeksi.status}
+                    </div>
+                  ) : (
+                    <div className="p-2.5 rounded-xl border border-slate-200 bg-slate-100 text-center font-bold text-xs text-slate-500 flex items-center justify-center gap-1.5">
+                      <Lock className="w-3.5 h-3.5 text-slate-400" /> Terkunci (Mode Tamu)
+                    </div>
+                  )}
                 </div>
               </div>
 

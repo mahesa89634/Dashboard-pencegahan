@@ -43,6 +43,7 @@ interface DashboardHomeProps {
   onExportSocialization: () => void;
   onExportRedkar: () => void;
   isAdmin: boolean;
+  isLeadershipUnlocked?: boolean;
   selectedMonth: string;
   onMonthChange: (month: string) => void;
   selectedYear: string;
@@ -66,12 +67,16 @@ export default function DashboardHome({
   onExportSocialization,
   onExportRedkar,
   isAdmin,
+  isLeadershipUnlocked = false,
   selectedMonth,
   onMonthChange,
   selectedYear,
   onYearChange,
   onPrintPdf
 }: DashboardHomeProps) {
+  // Hanya tampilkan status kelayakan secara utuh jika Admin atau Akses Pimpinan aktif
+  const canViewStatus = isAdmin || Boolean(isLeadershipUnlocked);
+
   // Filter data berdasarkan bulan dan tahun saat mode Admin aktif
   const filteredInspeksi = isAdmin
     ? inspeksiList.filter(i => matchDateMonthYear(i.date, selectedMonth, selectedYear))
@@ -178,7 +183,7 @@ export default function DashboardHome({
             <div className="p-3 bg-red-50 text-red-600 rounded-xl group-hover:bg-red-600 group-hover:text-white transition-colors">
               <ShieldAlert className="w-6 h-6" />
             </div>
-            {criticalCount > 0 && (
+            {canViewStatus && criticalCount > 0 && (
               <span className="text-[10px] font-black bg-red-100 text-red-700 px-2 py-0.5 rounded-full border border-red-200 animate-pulse">
                 {criticalCount} Kritis
               </span>
@@ -192,14 +197,16 @@ export default function DashboardHome({
               Gedung / Sarana Diperiksa
             </h3>
           </div>
-          <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {safeCount} Aman
-            </span>
-            <span className="flex items-center gap-1 text-amber-600 font-medium">
-              <span className="w-2 h-2 rounded-full bg-amber-500"></span> {needFixCount} Perlu Perbaikan
-            </span>
-          </div>
+          {canViewStatus && (
+            <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500">
+              <span className="flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span> {safeCount} Aman
+              </span>
+              <span className="flex items-center gap-1 text-amber-600 font-medium">
+                <span className="w-2 h-2 rounded-full bg-amber-500"></span> {needFixCount} Perlu Perbaikan
+              </span>
+            </div>
+          )}
         </div>
 
         {/* Stat 2: Relawan REDKAR */}
@@ -372,14 +379,14 @@ export default function DashboardHome({
                   <th className="py-2.5 px-3">Gedung / Sarana</th>
                   <th className="py-2.5 px-3">Alamat</th>
                   <th className="py-2.5 px-3">Tanggal</th>
-                  <th className="py-2.5 px-3 text-center">Status Kelayakan</th>
+                  {canViewStatus && <th className="py-2.5 px-3 text-center">Status Kelayakan</th>}
                   <th className="py-2.5 px-3 text-right print:hidden">Aksi</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 font-medium">
                 {filteredInspeksi.length === 0 ? (
                   <tr>
-                    <td colSpan={5} className="py-8 text-center text-slate-400">
+                    <td colSpan={canViewStatus ? 5 : 4} className="py-8 text-center text-slate-400">
                       <div className="flex flex-col items-center justify-center gap-1.5">
                         <Building2 className="w-8 h-8 text-slate-300" />
                         <span className="font-bold text-xs text-slate-600">Tidak ada data audit / inspeksi pada periode ini</span>
@@ -403,17 +410,19 @@ export default function DashboardHome({
                       <td className="py-3 px-3 text-slate-600 font-mono text-[11px] whitespace-nowrap">
                         {formatDateDisplay(item.date)}
                       </td>
-                      <td className="py-3 px-3 text-center whitespace-nowrap">
-                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${
-                          item.status === 'Kritis'
-                            ? 'bg-red-50 border-red-200 text-red-700'
-                            : item.status === 'Perlu Perbaikan'
-                              ? 'bg-amber-50 border-amber-200 text-amber-800'
-                              : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                        }`}>
-                          {item.status}
-                        </span>
-                      </td>
+                      {canViewStatus && (
+                        <td className="py-3 px-3 text-center whitespace-nowrap">
+                          <span className={`inline-block px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${
+                            item.status === 'Kritis'
+                              ? 'bg-red-50 border-red-200 text-red-700'
+                              : item.status === 'Perlu Perbaikan'
+                                ? 'bg-amber-50 border-amber-200 text-amber-800'
+                                : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                          }`}>
+                            {item.status}
+                          </span>
+                        </td>
+                      )}
                       <td className="py-3 px-3 text-right whitespace-nowrap print:hidden">
                         <button
                           onClick={() => onSelectInspeksi(item)}

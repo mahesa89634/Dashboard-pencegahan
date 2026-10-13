@@ -935,6 +935,7 @@ export default function App() {
                 }
               }}
               isAdmin={isAdmin}
+              isLeadershipUnlocked={isLeadershipUnlocked}
               selectedMonth={selectedMonth}
               onMonthChange={setSelectedMonth}
               selectedYear={selectedYear}

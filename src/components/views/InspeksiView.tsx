@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ShieldAlert, 
   Plus, 
@@ -69,6 +69,13 @@ export default function InspeksiView({
   const [viewMode, setViewMode] = useState<'table' | 'cards'>('cards');
 
   const canViewNotes = isAdmin || isLeadershipUnlocked;
+  const canViewStatus = isAdmin || isLeadershipUnlocked;
+
+  useEffect(() => {
+    if (!canViewStatus && statusFilter !== 'all') {
+      setStatusFilter('all');
+    }
+  }, [canViewStatus, statusFilter]);
 
   // Filter berdasarkan periode bulan & tahun khusus Admin
   const periodFilteredList = isAdmin
@@ -117,7 +124,7 @@ export default function InspeksiView({
       />
 
       {/* 1. TOP STATS HEADER */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 print:hidden">
+      <div className={`grid grid-cols-1 ${canViewStatus ? 'sm:grid-cols-2 lg:grid-cols-4' : 'sm:grid-cols-1 max-w-sm'} gap-4 print:hidden`}>
         <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">Total Bangunan / Objek</span>
           <div className="flex items-center justify-between mt-2">
@@ -126,29 +133,33 @@ export default function InspeksiView({
           </div>
         </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-xs font-bold text-red-600 uppercase tracking-wider">Status Kritis (Bahaya)</span>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-2xl font-black text-red-600 font-mono">{criticalCount}</span>
-            <span className="p-2 bg-red-50 text-red-600 rounded-xl"><AlertTriangle className="w-5 h-5" /></span>
-          </div>
-        </div>
+        {canViewStatus && (
+          <>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-xs font-bold text-red-600 uppercase tracking-wider">Status Kritis (Bahaya)</span>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-2xl font-black text-red-600 font-mono">{criticalCount}</span>
+                <span className="p-2 bg-red-50 text-red-600 rounded-xl"><AlertTriangle className="w-5 h-5" /></span>
+              </div>
+            </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Perlu Perbaikan</span>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-2xl font-black text-amber-600 font-mono">{needFixCount}</span>
-            <span className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Clock className="w-5 h-5" /></span>
-          </div>
-        </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-xs font-bold text-amber-600 uppercase tracking-wider">Perlu Perbaikan</span>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-2xl font-black text-amber-600 font-mono">{needFixCount}</span>
+                <span className="p-2 bg-amber-50 text-amber-600 rounded-xl"><Clock className="w-5 h-5" /></span>
+              </div>
+            </div>
 
-        <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
-          <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Kondisi Aman / Layak</span>
-          <div className="flex items-center justify-between mt-2">
-            <span className="text-2xl font-black text-emerald-600 font-mono">{safeCount}</span>
-            <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle2 className="w-5 h-5" /></span>
-          </div>
-        </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-200 shadow-2xs">
+              <span className="text-xs font-bold text-emerald-600 uppercase tracking-wider">Kondisi Aman / Layak</span>
+              <div className="flex items-center justify-between mt-2">
+                <span className="text-2xl font-black text-emerald-600 font-mono">{safeCount}</span>
+                <span className="p-2 bg-emerald-50 text-emerald-600 rounded-xl"><CheckCircle2 className="w-5 h-5" /></span>
+              </div>
+            </div>
+          </>
+        )}
       </div>
 
       {/* 2. FILTER & CONTROLS TOOLBAR */}
@@ -178,36 +189,40 @@ export default function InspeksiView({
             >
               Semua ({periodFilteredList.length})
             </button>
-            <button
-              onClick={() => setStatusFilter('Kritis')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                statusFilter === 'Kritis' 
-                  ? 'bg-red-600 text-white shadow-xs' 
-                  : 'bg-red-50 text-red-700 hover:bg-red-100'
-              }`}
-            >
-              Kritis ({criticalCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter('Perlu Perbaikan')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                statusFilter === 'Perlu Perbaikan' 
-                  ? 'bg-amber-600 text-white shadow-xs' 
-                  : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
-              }`}
-            >
-              Perbaikan ({needFixCount})
-            </button>
-            <button
-              onClick={() => setStatusFilter('Aman')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
-                statusFilter === 'Aman' 
-                  ? 'bg-emerald-600 text-white shadow-xs' 
-                  : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-              }`}
-            >
-              Aman ({safeCount})
-            </button>
+            {canViewStatus && (
+              <>
+                <button
+                  onClick={() => setStatusFilter('Kritis')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                    statusFilter === 'Kritis' 
+                      ? 'bg-red-600 text-white shadow-xs' 
+                      : 'bg-red-50 text-red-700 hover:bg-red-100'
+                  }`}
+                >
+                  Kritis ({criticalCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('Perlu Perbaikan')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                    statusFilter === 'Perlu Perbaikan' 
+                      ? 'bg-amber-600 text-white shadow-xs' 
+                      : 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                  }`}
+                >
+                  Perbaikan ({needFixCount})
+                </button>
+                <button
+                  onClick={() => setStatusFilter('Aman')}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-colors cursor-pointer ${
+                    statusFilter === 'Aman' 
+                      ? 'bg-emerald-600 text-white shadow-xs' 
+                      : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                  }`}
+                >
+                  Aman ({safeCount})
+                </button>
+              </>
+            )}
           </div>
 
           {/* Action Buttons & Leadership PIN */}
@@ -335,7 +350,7 @@ export default function InspeksiView({
                   <th className="py-3.5 px-4">Gedung / Sarana</th>
                   <th className="py-3.5 px-4">Alamat & Lokasi</th>
                   <th className="py-3.5 px-4">Tanggal Pemeriksaan</th>
-                  <th className="py-3.5 px-4 text-center">Status Kelayakan</th>
+                  {canViewStatus && <th className="py-3.5 px-4 text-center">Status Kelayakan</th>}
                   <th className="py-3.5 px-4">Temuan / Catatan</th>
                   <th className="py-3.5 px-4 text-right print:hidden">Aksi</th>
                 </tr>
@@ -377,17 +392,19 @@ export default function InspeksiView({
                         {formatDateDisplay(item.date)}
                       </span>
                     </td>
-                    <td className="py-3 px-4 text-center whitespace-nowrap">
-                      <span className={`inline-block px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${
-                        item.status === 'Kritis'
-                          ? 'bg-red-50 border-red-200 text-red-700'
-                          : item.status === 'Perlu Perbaikan'
-                            ? 'bg-amber-50 border-amber-200 text-amber-800'
-                            : 'bg-emerald-50 border-emerald-200 text-emerald-700'
-                      }`}>
-                        {item.status}
-                      </span>
-                    </td>
+                    {canViewStatus && (
+                      <td className="py-3 px-4 text-center whitespace-nowrap">
+                        <span className={`inline-block px-2.5 py-1 rounded-full text-[10.5px] font-bold border ${
+                          item.status === 'Kritis'
+                            ? 'bg-red-50 border-red-200 text-red-700'
+                            : item.status === 'Perlu Perbaikan'
+                              ? 'bg-amber-50 border-amber-200 text-amber-800'
+                              : 'bg-emerald-50 border-emerald-200 text-emerald-700'
+                        }`}>
+                          {item.status}
+                        </span>
+                      </td>
+                    )}
                     <td className="py-3 px-4 text-slate-600 max-w-[260px]">
                       {canViewNotes ? (
                         <p className="line-clamp-2 leading-tight text-[11px]">
@@ -467,17 +484,19 @@ export default function InspeksiView({
                   )}
 
                   {/* Status Badge Tag */}
-                  <div className="absolute top-3 left-3">
-                    <span className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide uppercase border backdrop-blur-md shadow-xs ${
-                      isCritical
-                        ? 'bg-red-600/90 text-white border-red-500 animate-pulse'
-                        : isNeedFix
-                          ? 'bg-amber-500/90 text-white border-amber-400'
-                          : 'bg-emerald-600/90 text-white border-emerald-400'
-                    }`}>
-                      {item.status}
-                    </span>
-                  </div>
+                  {canViewStatus && (
+                    <div className="absolute top-3 left-3">
+                      <span className={`px-2.5 py-1 rounded-full text-[10px] font-black tracking-wide uppercase border backdrop-blur-md shadow-xs ${
+                        isCritical
+                          ? 'bg-red-600/90 text-white border-red-500 animate-pulse'
+                          : isNeedFix
+                            ? 'bg-amber-500/90 text-white border-amber-400'
+                            : 'bg-emerald-600/90 text-white border-emerald-400'
+                      }`}>
+                        {item.status}
+                      </span>
+                    </div>
+                  )}
 
                   {/* ID Tag */}
                   <div className="absolute top-3 right-3">

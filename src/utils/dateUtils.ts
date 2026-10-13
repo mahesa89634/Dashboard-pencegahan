@@ -117,10 +117,11 @@ export function getTodayInputDate(): string {
 /**
  * Sorts an array of objects descending by `date` (newest first).
  */
-export function sortByDateDesc<T extends { date: string }>(items: T[]): T[] {
-  return [...items].sort((a, b) => {
-    const timeA = parseDateToTimestamp(a.date);
-    const timeB = parseDateToTimestamp(b.date);
+export function sortByDateDesc<T extends { date?: string | null }>(items: T[]): T[] {
+  if (!Array.isArray(items)) return [];
+  return [...items].filter(Boolean).sort((a, b) => {
+    const timeA = parseDateToTimestamp(a?.date);
+    const timeB = parseDateToTimestamp(b?.date);
     return timeB - timeA;
   });
 }

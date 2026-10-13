@@ -149,10 +149,14 @@ interface ModalsProps {
   // Toast / Image Upload helpers
   onToast: (msg: string) => void;
   onImageUpload?: (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => void;
+
+  // Loading / Submitting State
+  isSubmitting?: boolean;
 }
 
 export default function Modals(props: ModalsProps) {
   const {
+    isSubmitting = false,
     showAdminLoginModal,
     onCloseAdminLogin,
     adminUsername,
@@ -464,10 +468,11 @@ export default function Modals(props: ModalsProps) {
                   Batal
                 </button>
                 <button
+                  disabled={isSubmitting}
                   onClick={onSaveInspeksi}
-                  className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md"
+                  className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
                 >
-                  Simpan Laporan
+                  {isSubmitting ? 'Menyimpan...' : (editingInspeksi ? 'Simpan Perubahan' : 'Simpan Laporan')}
                 </button>
               </div>
             </div>
@@ -573,10 +578,11 @@ export default function Modals(props: ModalsProps) {
                   Batal
                 </button>
                 <button
+                  disabled={isSubmitting}
                   onClick={onSaveVolunteer}
-                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white text-xs font-bold rounded-xl shadow-md"
+                  className="px-5 py-2 bg-amber-600 hover:bg-amber-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
                 >
-                  Simpan Relawan
+                  {isSubmitting ? 'Menyimpan...' : (editingVolunteer ? 'Simpan Perubahan' : 'Simpan Relawan')}
                 </button>
               </div>
             </div>
@@ -695,10 +701,11 @@ export default function Modals(props: ModalsProps) {
                   Batal
                 </button>
                 <button
+                  disabled={isSubmitting}
                   onClick={onSaveSocialization}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold rounded-xl shadow-md"
+                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md transition-all cursor-pointer"
                 >
-                  Simpan Kegiatan
+                  {isSubmitting ? 'Menyimpan...' : (editingSocialization ? 'Simpan Perubahan' : 'Simpan Kegiatan')}
                 </button>
               </div>
             </div>
@@ -806,10 +813,11 @@ export default function Modals(props: ModalsProps) {
                 </button>
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={onSaveMaterial}
-                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/10 transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md shadow-emerald-900/10 transition-all cursor-pointer active:scale-95"
                 >
-                  {editingMaterial ? 'Perbarui Laporan' : 'Simpan Laporan Pembinaan'}
+                  {isSubmitting ? 'Menyimpan...' : (editingMaterial ? 'Perbarui Laporan' : 'Simpan Laporan Pembinaan')}
                 </button>
               </div>
             </div>
@@ -914,10 +922,11 @@ export default function Modals(props: ModalsProps) {
                 </button>
                 <button
                   type="button"
+                  disabled={isSubmitting}
                   onClick={onSaveNspm}
-                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/10 transition-all cursor-pointer active:scale-95"
+                  className="px-5 py-2 bg-sky-600 hover:bg-sky-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md shadow-sky-900/10 transition-all cursor-pointer active:scale-95"
                 >
-                  {editingNspm ? 'Perbarui Regulasi' : 'Simpan Regulasi'}
+                  {isSubmitting ? 'Menyimpan...' : (editingNspm ? 'Perbarui Regulasi' : 'Simpan Regulasi')}
                 </button>
               </div>
             </div>
@@ -1205,10 +1214,11 @@ export default function Modals(props: ModalsProps) {
                 Batal
               </button>
               <button
+                disabled={isSubmitting}
                 onClick={onConfirmDelete}
-                className="px-5 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+                className="px-5 py-2 bg-red-600 hover:bg-red-700 disabled:opacity-60 disabled:cursor-not-allowed text-white text-xs font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
               >
-                Ya, Hapus Data
+                {isSubmitting ? 'Menghapus...' : 'Ya, Hapus Data'}
               </button>
             </div>
           </div>

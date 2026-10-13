@@ -16,3 +16,17 @@ const app = initializeApp(firebaseConfig);
 
 // Initialize Cloud Firestore and get a reference to the service
 export const db = getFirestore(app);
+
+/**
+ * Removes undefined properties so Firestore setDoc / updateDoc never throws:
+ * "Unsupported field value: undefined"
+ */
+export function cleanFirestoreData<T extends Record<string, any>>(obj: T): Record<string, any> {
+  const result: Record<string, any> = {};
+  for (const [key, val] of Object.entries(obj)) {
+    if (val !== undefined) {
+      result[key] = val;
+    }
+  }
+  return result;
+}
